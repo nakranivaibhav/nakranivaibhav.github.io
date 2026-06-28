@@ -1,0 +1,27 @@
+---
+# Front matter (the two dashes) tells Jekyll to process this file with Sass.
+---
+@import "minima";
+
+// Hero banner shown at the top of a post when it has an `image:` in front matter.
+.post-hero {
+  margin: 0 0 1.5em;
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 420px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+}
+
+// Keep in-content images from overflowing, and center them.
+.post-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1.5em auto;
+  border-radius: 6px;
+}

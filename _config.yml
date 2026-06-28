@@ -1,7 +1,8 @@
 title: Vaibhav Nakrani
-email: vaibhav.nakrani@aila.sa
+email: vaibhav@deeplearningdiary.com
 description: >-
-  Personal blog — notes on software, engineering, and things I'm learning.
+  ML and Agentic AI, explained without the hand-waving. Notes on diffusion,
+  agents, computer vision, and whatever I'm currently figuring out.
 baseurl: ""
 url: "https://nakranivaibhav.github.io"
 github_username: nakranivaibhav

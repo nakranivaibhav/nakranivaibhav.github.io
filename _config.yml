@@ -1,0 +1,21 @@
+title: Vaibhav Nakrani
+email: vaibhav.nakrani@aila.sa
+description: >-
+  Personal blog — notes on software, engineering, and things I'm learning.
+baseurl: ""
+url: "https://nakranivaibhav.github.io"
+github_username: nakranivaibhav
+
+# Build settings
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - .gitignore
+  - README.md

@@ -4,35 +4,48 @@ title: About
 permalink: /about/
 ---
 
-I'm **Vaibhav Nakrani**, a Machine Learning and Agentic AI engineer with 5+ years
-shipping end-to-end ML systems: computer vision, LLMs and RAG, multi-agent
-orchestration, and the cloud/MLOps plumbing that holds it all together in
-production.
+I'm **Vaibhav Nakrani**, a Machine Learning and Agentic AI engineer. What I do,
+in one line: read modern research, pull out the idea that matters, and implement
+it against the hardest version of the problem in front of me.
 
-Some of what I've built:
+That last part is the whole game. A lot of ML lives in the gap between a paper
+that works on a benchmark and a system that holds up at 4K @ 30 FPS in front of
+real users. I'm comfortable on both sides of that gap, and I think the people
+who can move between them, keeping the science honest while making the
+engineering ship, are the ones who actually solve the tough problems.
+
+A few of those problems I've taken on:
 
 - A LangGraph multi-agent system that turns educational text into Manim videos,
   with 15K+ generated in production.
 - A real-time speech-to-speech tutoring agent with streaming text and tool calls.
 - A YOLO-based weapons-detection model running at 4K @ 30 FPS, deployed with the
-  South Korean police.
+  South Korean police, using confident learning and embedding-based outlier
+  detection to push accuracy where it mattered.
 - RAG and knowledge-graph systems over large document corpora (Neo4j, ~40M-token
   indexes), plus VLM pipelines that reconciled invoices to surface $500K+ in
   discrepancies.
 
-Day to day I work across PyTorch, the YOLO/SAM/DETR family for vision,
-LangGraph and the OpenAI/Anthropic SDKs for agents, and AWS/GCP for deployment.
-I care a lot about the unglamorous parts: rigorous data cleaning, model
-interpretability (Captum, attention maps, occlusion), and turning model output
-into something that actually moves a number.
+The throughline is a balance between theory and engineering: I'll dig into why a
+model behaves the way it does (interpretability with Captum, attention maps,
+occlusion studies, rigorous data cleaning) and then own the unglamorous path to
+production on AWS/GCP. My core stack is PyTorch, the YOLO/SAM/DETR family for
+vision, and LangGraph with the OpenAI/Anthropic SDKs for agents.
+
+A recent review put it better than I can:
+
+> Vaibhav showed outstanding results on image recognition tasks. He has a
+> remarkable balance between science, theory, and engineering. He is proactive
+> and suggests well thought-out solutions. Communication is excellent. Recommend
+> working with him strongly.
 
 ## Why this blog
 
 Most ML explanations either hand-wave the intuition or drown you in notation.
 I write the version I wish I'd had, building ideas up one step at a time until
 they click, with the math kept honest but never used as a smokescreen. Expect
-posts on diffusion, agents, computer vision, and whatever I'm currently
-figuring out.
+posts where I take a piece of modern research and rebuild it from the ground up:
+diffusion, agents, computer vision, and whatever I'm currently figuring out.
 
 ## Elsewhere
 

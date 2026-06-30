@@ -63,3 +63,5 @@ So the whole thing is still three pieces: A direction that says which way is mor
 The VAE and text encoder are just the frozen helpers that make it cheap and controllable. Everything else is detail.
 
 Optional: both the vae and the text encoder can be fine-tuned when tuning these models. text encoder tuning is more beneficial generally than vae from my expreiments.
+
+*Inspired by [fast.ai Practical Deep Learning, Lesson 9](https://course.fast.ai/Lessons/lesson9.html). If you want the long version, the lesson has the full lecture video walking through all of this end to end. Grab a coffee, it's worth the couple of hours.*

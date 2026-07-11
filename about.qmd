@@ -1,8 +1,8 @@
 ---
-layout: page
-title: About
-permalink: /about/
+title: "About"
+toc: false
 ---
+
 
 I'm **Vaibhav Nakrani**, a Machine Learning and Agentic AI engineer. What I do,
 in one line: read modern research, pull out the idea that matters, and implement

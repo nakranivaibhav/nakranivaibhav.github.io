@@ -1,9 +1,11 @@
 ---
-layout: post
 title: "Four Steps and 40+8 Steps Do Not Share a Unit"
 subtitle: "A field guide to comparing video-generation schedules without inventing a benchmark"
-date: 2026-07-11 10:00:00 +0300
-categories: machine-learning
+author: "Vaibhav Nakrani"
+date: 2026-07-11
+categories: [machine-learning]
+aliases:
+  - /machine-learning/2026/07/11/four-steps-do-not-share-a-unit.html
 ---
 
 
@@ -89,6 +91,7 @@ That last sentence is the key: a nominal step is a counter defined by its own im
 
 Consider three imaginary generators that must all return the same eight-frame clip. Each interface happens to display the number `4`, but the number sits next to a different unit.
 
+```{=html}
 <div class="path-grid" aria-label="Three fictional ways to generate the same eight-frame clip">
   <section class="path-card" aria-labelledby="toy-path-a">
     <h3 id="toy-path-a">Path A · whole-clip schedule</h3>
@@ -128,6 +131,7 @@ Consider three imaginary generators that must all return the same eight-frame cl
     <p class="path-note"><strong>Counter:</strong> four temporal advances.</p>
   </section>
 </div>
+```
 
 Yellow means the call mapping is still unknown on every path. A node shows one nominal update or one stage counter; it does not promise one identical network call.
 
@@ -145,6 +149,7 @@ With the toy paths in view, the paper-specific terms become easier to place.
 
 **Causal Forcing++ follows the rollout pattern.** *Autoregressive* generation produces a later frame or block while conditioning on earlier generated context. A *temporal rollout* repeats that operation to extend the video through time. In the paper's reported implementation, the first latent frame uses four sampling steps; each of the subsequent 20 latent frames uses either one or two sampling steps, depending on the configuration ([paper](https://arxiv.org/abs/2605.15141)). A latent frame is a frame-like unit in the model's compact internal representation, so this counter is scoped to a latent-frame advance rather than one full-clip trajectory.
 
+```{=html}
 <div class="path-grid" aria-label="Published schedule scopes for three real video-generation systems">
   <section class="path-card" aria-labelledby="real-dynamic">
     <h3 id="real-dynamic">Dynamic-in-Few-Step</h3>
@@ -182,6 +187,7 @@ With the toy paths in view, the paper-specific terms become easier to place.
     <p class="path-note"><strong>Unit:</strong> a latent-frame advance, with a different setting for the first frame.</p>
   </section>
 </div>
+```
 
 The same yellow legend now carries over to the real systems: published counters identify schedule positions, while a common cross-system call mapping and cost remain unestablished. Dynamic's `4` advances a full-clip denoising schedule. LingBot's `40` and `8` advance two sequential stages. Causal Forcing++ uses `4` for its first latent frame and `1` or `2` for each of the next 20 latent frames; all of those counters remain scoped to frame-wise rollout.
 

@@ -1,10 +1,13 @@
 ---
-layout: post
 title: "Diffusion Without the Hand-Waving"
-date: 2026-06-28 10:00:00 +0300
-categories: machine-learning
+author: "Vaibhav Nakrani"
+date: 2026-06-28
+categories: [machine-learning]
 image: /assets/images/diffusion-without-the-hand-waving/im1.png
+aliases:
+  - /machine-learning/2026/06/28/diffusion-without-the-hand-waving.html
 ---
+
 
 The cleanest way to understand diffusion is to build it up one step at a time. Here's the version that finally made it click.
 

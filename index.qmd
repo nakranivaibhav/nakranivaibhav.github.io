@@ -1,0 +1,12 @@
+---
+title: "Vaibhav Nakrani"
+listing:
+  contents: posts
+  sort: "date desc"
+  type: default
+  feed: true
+page-layout: full
+toc: false
+---
+
+ML and Agentic AI, explained without the hand-waving.

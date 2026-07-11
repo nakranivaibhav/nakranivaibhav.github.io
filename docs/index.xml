@@ -1,0 +1,535 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
+      xmlns:media="http://search.yahoo.com/mrss/" 
+      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
+      xmlns:dc="http://purl.org/dc/elements/1.1/" 
+      version="2.0">
+<channel>
+<title>Vaibhav Nakrani</title>
+<link>https://nakranivaibhav.github.io/</link>
+<atom:link href="https://nakranivaibhav.github.io/index.xml" rel="self" type="application/rss+xml"/>
+<description>ML and Agentic AI, explained without the hand-waving. Notes on diffusion, agents, computer vision, and whatever I&#39;m currently figuring out.</description>
+<generator>quarto-1.8.25</generator>
+<lastBuildDate>Fri, 10 Jul 2026 18:30:00 GMT</lastBuildDate>
+<item>
+  <title>Four Steps and 40+8 Steps Do Not Share a Unit</title>
+  <dc:creator>Vaibhav Nakrani</dc:creator>
+  <link>https://nakranivaibhav.github.io/posts/four-steps-do-not-share-a-unit.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<style>
+.path-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+  margin: 1.25rem 0;
+}
+.path-card {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 1rem;
+  border: 2px solid #334155;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  color: #0f172a;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.08);
+}
+.path-card h3 {
+  margin: 0 0 0.8rem;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  color: #0f172a;
+}
+.path-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.path-node {
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  padding: 0.55rem 0.65rem;
+  border: 2px solid #925f00;
+  border-radius: 0.45rem;
+  background: #fff7cc;
+  color: #2d2100;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  text-align: center;
+}
+.path-node.output {
+  border-color: #166534;
+  background: #dcfce7;
+  color: #14532d;
+}
+.path-arrow {
+  color: #334155;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+.path-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: #334155;
+}
+@media (max-width: 900px) {
+  .path-grid { grid-template-columns: 1fr; }
+}
+</style>
+<p>When one video model says “four steps” and another says “40 base steps plus 8 refiner steps,” what exactly are we comparing?</p>
+<p>The tempting answer is a stopwatch model: one step is one identical tick, so fewer ticks means proportionally less work. That model is useful only inside one implementation. Across implementations, <em>step</em> is a local counter. It tells us that something advanced, but not yet what advanced or how much computation happened.</p>
+<p>The goal here is to build a better mental model from one small example, then use it to read three real systems without inventing a shared unit.</p>
+<section id="what-can-one-step-mean" class="level2">
+<h2 class="anchored" data-anchor-id="what-can-one-step-mean">What can one step mean?</h2>
+<p>Start with a video generator’s <strong>current state</strong>: the working representation it is changing. In diffusion systems this is often a compact numerical array called a <em>latent</em>, but for now it is enough to picture a rough eight-frame clip.</p>
+<p>A <strong>schedule update</strong> takes that current state and produces the next state. The <strong>scope</strong> of the update says which object moves forward: the whole clip, one stage of a pipeline, or the next frame or block of frames. An <strong>actual model call</strong>, also called a network invocation, is one execution of a neural network. One nominal schedule update may map to one call, several calls, or a call whose workload differs from another system’s call.</p>
+<p>That last sentence is the key: a nominal step is a counter defined by its own implementation. Its mapping to network calls and work has to be reported or measured.</p>
+</section>
+<section id="a-fictional-eight-frame-clip" class="level2">
+<h2 class="anchored" data-anchor-id="a-fictional-eight-frame-clip">A fictional eight-frame clip</h2>
+<p>Consider three imaginary generators that must all return the same eight-frame clip. Each interface happens to display the number <code>4</code>, but the number sits next to a different unit.</p>
+<div class="path-grid" aria-label="Three fictional ways to generate the same eight-frame clip">
+  <section class="path-card" aria-labelledby="toy-path-a">
+    <h3 id="toy-path-a" class="anchored">Path A · whole-clip schedule</h3>
+    <div class="path-flow">
+      <div class="path-node output">Rough eight-frame state</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node">Update 1 · revise all eight frames</div>
+      <div class="path-node">Update 2 · revise all eight frames</div>
+      <div class="path-node">Update 3 · revise all eight frames</div>
+      <div class="path-node">Update 4 · revise all eight frames</div>
+    </div>
+    <p class="path-note"><strong>Counter:</strong> four whole-clip updates.</p>
+  </section>
+  <section class="path-card" aria-labelledby="toy-path-b">
+    <h3 id="toy-path-b" class="anchored">Path B · two-stage pipeline</h3>
+    <div class="path-flow">
+      <div class="path-node output">Rough eight-frame state</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node">Base stage · counter = 4</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node">Refiner stage · counter = 4</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node output">Finished eight-frame clip</div>
+    </div>
+    <p class="path-note"><strong>Counters:</strong> two separate stage-local fours.</p>
+  </section>
+  <section class="path-card" aria-labelledby="toy-path-c">
+    <h3 id="toy-path-c" class="anchored">Path C · frame-block rollout</h3>
+    <div class="path-flow">
+      <div class="path-node output">No generated frames</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node">Block 1 · append two frames</div>
+      <div class="path-node">Block 2 · append two frames</div>
+      <div class="path-node">Block 3 · append two frames</div>
+      <div class="path-node">Block 4 · append two frames</div>
+    </div>
+    <p class="path-note"><strong>Counter:</strong> four temporal advances.</p>
+  </section>
+</div>
+<p>Yellow means the call mapping is still unknown on every path. A node shows one nominal update or one stage counter; it does not promise one identical network call.</p>
+<p>Path A’s <code>4</code> counts four successive revisions of the entire clip. Path B has two separate counters that both read <code>4</code>: one belongs to the base stage and one to a later refiner, which is a second stage that improves the base result. Path C’s <code>4</code> counts four temporal advances; each advance appends a two-frame block, so the four blocks cover the fictional eight-frame output. That toy arithmetic illustrates the scopes; it is not a claim about any cited model.</p>
+<p>Pause here and predict: if every yellow node happened to require one call, would the calls be comparable? Not necessarily. A call over all eight frames can have a different workload from a call over two new frames, and the base and refiner can be different networks. Call count is a better denominator than the bare word <em>step</em>, but it is still not a runtime benchmark.</p>
+</section>
+<section id="now-apply-the-model-to-real-schedules" class="level2">
+<h2 class="anchored" data-anchor-id="now-apply-the-model-to-real-schedules">Now apply the model to real schedules</h2>
+<p>With the toy paths in view, the paper-specific terms become easier to place.</p>
+<p><strong>Dynamic-in-Few-Step follows the whole-clip pattern.</strong> Denoising means repeatedly turning a noisy working state into a cleaner one. <em>Distillation</em> trains a student to reproduce a longer teacher process with fewer scheduled updates. The paper reports a four-step distilled Wan-14B schedule and a 30× speedup relative to its own 50-step teacher (<a href="https://arxiv.org/abs/2607.06631">paper</a>).</p>
+<p><strong>LingBot-Video follows the two-stage pattern.</strong> Its public text-to-video workflow exposes 40 base steps followed by 8 refiner steps (<a href="https://github.com/robbyant/lingbot-video">repository</a>). The prompt supplies <em>conditioning</em>: information that guides what the model generates. The two step settings are separate stage controls. The public material does not establish that they equal 48 interchangeable model calls, or that a base call costs the same as a refiner call (<a href="https://huggingface.co/robbyant/lingbot-video-moe-30b-a3b">model card</a>).</p>
+<p><strong>Causal Forcing++ follows the rollout pattern.</strong> <em>Autoregressive</em> generation produces a later frame or block while conditioning on earlier generated context. A <em>temporal rollout</em> repeats that operation to extend the video through time. In the paper’s reported implementation, the first latent frame uses four sampling steps; each of the subsequent 20 latent frames uses either one or two sampling steps, depending on the configuration (<a href="https://arxiv.org/abs/2605.15141">paper</a>). A latent frame is a frame-like unit in the model’s compact internal representation, so this counter is scoped to a latent-frame advance rather than one full-clip trajectory.</p>
+<div class="path-grid" aria-label="Published schedule scopes for three real video-generation systems">
+  <section class="path-card" aria-labelledby="real-dynamic">
+    <h3 id="real-dynamic" class="anchored">Dynamic-in-Few-Step</h3>
+    <div class="path-flow">
+      <div class="path-node output">Noisy full-clip state</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node">Four full-clip schedule updates</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node output">Video</div>
+    </div>
+    <p class="path-note"><strong>Unit:</strong> one position in a full-clip denoising schedule.</p>
+  </section>
+  <section class="path-card" aria-labelledby="real-lingbot">
+    <h3 id="real-lingbot" class="anchored">LingBot-Video</h3>
+    <div class="path-flow">
+      <div class="path-node output">Prompt conditioning</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node">Base stage · 40 configured steps</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node">Refiner stage · 8 configured steps</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node output">Video</div>
+    </div>
+    <p class="path-note"><strong>Units:</strong> separate base-stage and refiner-stage positions.</p>
+  </section>
+  <section class="path-card" aria-labelledby="real-causal">
+    <h3 id="real-causal" class="anchored">Causal Forcing++</h3>
+    <div class="path-flow">
+      <div class="path-node">First latent frame · 4 sampling steps</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node">Next 20 latent frames · 1 or 2 sampling steps each</div>
+      <div class="path-arrow">↓</div>
+      <div class="path-node output">Completed temporal rollout</div>
+    </div>
+    <p class="path-note"><strong>Unit:</strong> a latent-frame advance, with a different setting for the first frame.</p>
+  </section>
+</div>
+<p>The same yellow legend now carries over to the real systems: published counters identify schedule positions, while a common cross-system call mapping and cost remain unestablished. Dynamic’s <code>4</code> advances a full-clip denoising schedule. LingBot’s <code>40</code> and <code>8</code> advance two sequential stages. Causal Forcing++ uses <code>4</code> for its first latent frame and <code>1</code> or <code>2</code> for each of the next 20 latent frames; all of those counters remain scoped to frame-wise rollout.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 23%">
+<col style="width: 30%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>System</th>
+<th style="text-align: right;">Published counter</th>
+<th>Unit advanced</th>
+<th>What the counter does <strong>not</strong> establish</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Dynamic-in-Few-Step</td>
+<td style="text-align: right;">4</td>
+<td>Full-clip denoising schedule</td>
+<td>Equal output, quality, or per-call work versus another model</td>
+</tr>
+<tr class="even">
+<td>LingBot-Video</td>
+<td style="text-align: right;">40 base + 8 refiner</td>
+<td>Two separate pipeline stages</td>
+<td>48 equivalent calls or equal base/refiner cost</td>
+</tr>
+<tr class="odd">
+<td>Causal Forcing++</td>
+<td style="text-align: right;">First latent frame: 4; subsequent 20 latent frames: 1 or 2 each</td>
+<td>One latent-frame advance</td>
+<td>Total calls for a matched clip length</td>
+</tr>
+</tbody>
+</table>
+<p>Notice what is missing: there is no “total comparable steps” column. The omission preserves the units rather than hiding them.</p>
+</section>
+<section id="three-buckets-determine-actual-work" class="level2">
+<h2 class="anchored" data-anchor-id="three-buckets-determine-actual-work">Three buckets determine actual work</h2>
+<p>Once the schedule unit is clear, actual runtime becomes easier to reason about. Put the work into three buckets, one at a time.</p>
+<section id="dependent-updates" class="level3">
+<h3 class="anchored" data-anchor-id="dependent-updates">1. Dependent updates</h3>
+<p>An update is <strong>dependent</strong> when the next update needs the state produced by the previous one. In toy Path A, update 2 cannot revise the clip until update 1 has produced its state. Four dependent updates therefore create four ordered positions even before we know how expensive each position is.</p>
+<p>Fewer ordered positions can reduce latency, which is why schedule compression matters. Dynamic-in-Few-Step places its four-step claim in this bucket: its distilled student replaces a 50-step teacher schedule in the paper’s reported setup (<a href="https://arxiv.org/abs/2607.06631">paper</a>). The comparison is meaningful against that teacher; it is not a conversion from Dynamic’s steps to LingBot’s stage controls.</p>
+</section>
+<section id="work-inside-each-model-call" class="level3">
+<h3 class="anchored" data-anchor-id="work-inside-each-model-call">2. Work inside each model call</h3>
+<p>Calls with the same count can perform different work. In the toy example, one call might revise the state of all eight frames, while another processes only a new two-frame block. Network size and the amount of active computation can change the cost again.</p>
+<p>Dynamic-in-Few-Step also changes this bucket with <strong>timestep-specific structural sparsity</strong>: different denoising positions use different subsets of network structure. The paper reports 24% fewer per-step floating-point operations (FLOPs, an estimate of arithmetic work) and a 1.2× wall-clock improvement for that component (<a href="https://arxiv.org/abs/2607.06631">paper</a>). The gap between those numbers is a useful warning: less arithmetic does not translate mechanically into the same percentage of elapsed-time reduction.</p>
+<p>LingBot’s 30B-A3B label belongs here too. It describes a mixture-of-experts model, or <strong>MoE</strong>, which routes an input through only part of the network. The label indicates 30 billion total parameters with about 3 billion active, while its 40-step base and 8-step refiner settings remain schedule counters (<a href="https://huggingface.co/robbyant/lingbot-video-moe-30b-a3b">model card</a>). Routing can change work inside a call; it does not erase the ordered calls.</p>
+</section>
+<section id="work-outside-or-between-model-calls" class="level3">
+<h3 class="anchored" data-anchor-id="work-outside-or-between-model-calls">3. Work outside or between model calls</h3>
+<p>A generation pipeline can do work before, between, and after its repeated network calls. LingBot’s public path includes a prompt rewriter before generation and a refiner after the base stage (<a href="https://github.com/robbyant/lingbot-video">repository</a>). A <strong>prompt rewriter</strong> expands or changes the user’s text before it conditions the generator. A <strong>decoder</strong> performs the later conversion from the model’s compact latent state into viewable frames.</p>
+<p>Toy Path B makes the boundary visible: handing the base result to a refiner is work that Path A does not necessarily have. Even perfect agreement on model-call counts would leave prompt processing, stage transitions, and decoding to measure separately.</p>
+<p>The three-bucket model is now complete:</p>
+<ol type="1">
+<li>How many updates must happen in order?</li>
+<li>How much work happens inside each model call?</li>
+<li>What work happens outside or between those calls?</li>
+</ol>
+<p>A reader who keeps those buckets separate can explain why a smaller counter may help without pretending it proves an end-to-end speed ratio.</p>
+</section>
+</section>
+<section id="a-compact-reporting-contract" class="level2">
+<h2 class="anchored" data-anchor-id="a-compact-reporting-contract">A compact reporting contract</h2>
+<p>The comparison still needs a matched job. Fix the output first: width, height, number of frames, frame rate, and conditioning mode. Fix the quality test next: the reference system, prompt set, evaluator, and acceptable difference. Only then record schedule and runtime.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">output</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span></span>
+<span id="cb1-2"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">width_height</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-3"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">frames_and_fps</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-4"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">conditioning_mode</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-5"></span>
+<span id="cb1-6"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">schedule</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span></span>
+<span id="cb1-7"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">unit_advanced</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        # full clip, stage, frame, or frame block</span></span>
+<span id="cb1-8"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">nominal_updates_by_stage</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-9"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">actual_model_calls_by_stage</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> UNKNOWN_UNTIL_MEASURED</span></span>
+<span id="cb1-10"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">outside_call_work</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    # e.g. prompt rewrite, refiner handoff, decode</span></span>
+<span id="cb1-11"></span>
+<span id="cb1-12"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">runtime</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span></span>
+<span id="cb1-13"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">accelerator_and_precision</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-14"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">batch_size</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-15"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">warmup_runs</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-16"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">measured_runs</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-17"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">median_end_to_end_time</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-18"></span>
+<span id="cb1-19"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">quality</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span></span>
+<span id="cb1-20"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">reference_and_evaluator</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span>
+<span id="cb1-21"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">  </span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">acceptance_threshold</span><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">:</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;"> REQUIRED</span></span></code></pre></div></div>
+<p>Every field has one job. <code>conditioning_mode</code> records whether text, an image, or another input guides generation. The accelerator is the compute device, usually a GPU; precision is the numerical format used for its calculations. <code>batch_size</code> says how many requests are processed together. <code>warmup_runs</code> are unmeasured practice runs that let loading and compilation settle before timing. <code>measured_runs</code> says how many timed repetitions support the median. The median is the middle observed end-to-end time, so one unusually slow run does not define the result. Finally, <code>acceptance_threshold</code> states how much measured quality difference the comparison permits.</p>
+<p><code>UNKNOWN_UNTIL_MEASURED</code> is not a weakness in the schema. It prevents a command-line counter from silently turning into a model-call count. Once instrumentation supplies the mapping, the three work buckets tell us where the elapsed time came from.</p>
+</section>
+<section id="the-benchmark-to-run" class="level2">
+<h2 class="anchored" data-anchor-id="the-benchmark-to-run">The benchmark to run</h2>
+<p>Suppose all three implementations were available. Ask each for the same output and quality contract, then preserve its native schedule names. Instrument every model boundary and record only four measurements:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Measurement</th>
+<th>Why it is needed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Nominal updates by native stage</td>
+<td>Preserves what each implementation actually counts</td>
+</tr>
+<tr class="even">
+<td>Actual model calls by stage</td>
+<td>Reveals the mapping hidden behind the word <em>step</em></td>
+</tr>
+<tr class="odd">
+<td>Time inside calls versus outside calls</td>
+<td>Separates schedule depth from other pipeline work</td>
+</tr>
+<tr class="even">
+<td>End-to-end time at matched quality</td>
+<td>Tests the speed claim the user ultimately experiences</td>
+</tr>
+</tbody>
+</table>
+<p>The result might show that fewer dependent updates dominate runtime. It might instead show that heavier calls, repeated frame-block rollout, refinement, or decoding absorbs much of the gain. Either outcome answers an engineering question that a naked step count cannot.</p>
+<p>The corrected mental model fits in one sentence: a step count names advances inside one schedule, while runtime depends on dependent updates, work per call, and work around those calls. The boundary matters just as much as the model: the cited sources do not supply a common output, quality target, call mapping, and runtime setup across all three systems. Until they do, the right response to “four steps” is not a ratio but a question: four advances of what?</p>
+
+
+</section>
+
+ ]]></description>
+  <category>machine-learning</category>
+  <guid>https://nakranivaibhav.github.io/posts/four-steps-do-not-share-a-unit.html</guid>
+  <pubDate>Fri, 10 Jul 2026 18:30:00 GMT</pubDate>
+</item>
+<item>
+  <title>Diffusion Without the Hand-Waving</title>
+  <dc:creator>Vaibhav Nakrani</dc:creator>
+  <link>https://nakranivaibhav.github.io/posts/diffusion-without-the-hand-waving.html</link>
+  <description><![CDATA[ 
+
+
+
+
+<p>The cleanest way to understand diffusion is to build it up one step at a time. Here’s the version that finally made it click.</p>
+<p>Start with the goal. You want to turn random noise into a realistic image.</p>
+<p>Now imagine you had a magic function. You show it any image and it tells you how realistic that image is. A clear photo scores high. Pure static scores low.</p>
+<p>The useful part isn’t the score itself. It’s the gradient of that score with respect to the pixels. That gradient tells you exactly which pixels to change, and in which direction, to make the image look a little more real. Follow it over and over and noise slowly turns into a real image.</p>
+<p>The problem is nobody can hand you that function.</p>
+<p>The trick that makes the whole field work. You can learn that gradient without ever building the function. Take a real image. Add a known amount of noise to it. Train a network to predict the noise you added. That predicted noise is, give or take a scaling factor, the gradient you wanted. Subtract a bit of it and the image moves toward “more realistic.”</p>
+<p>The network does not learn to clean up images. It learns which direction points toward real data. Denoising is just what that looks like from the outside. The proper name for that direction is the score, but you can keep thinking of it as a gradient.</p>
+<p>Training is boring on purpose. Take images, add a random amount of noise to each, ask the model to predict the noise, penalize it with mean squared error. Repeat millions of times. You also feed in how much noise was added, so the model knows how messy the picture currently is. ( the magical timestep )</p>
+<p>Generation just runs it backward. Start from pure noise. Ask the model which direction is more realistic. Take a small step that way. Ask again. Step again. Repeat until an image appears. The steps are small because the model’s guess is only approximate, especially early on when the input looks nothing like real data.</p>
+<p>That stepping strategy is the sampler. DDPM, DDIM, Euler, DPM-Solver. They teach the model nothing new. They’re just different ways of walking downhill. The right mental model is optimizers. SGD versus Adam. Same loss surface, different path, different speed. A good sampler gets you there in 20 steps instead of 1000.</p>
+<p>So far this was on raw pixels. In practice you don’t work on pixels, and you also want to control what gets generated. Two extra pieces handle that, and both are trained ahead of time and then frozen.</p>
+<p>The VAE is just a compressor. It’s trained separately, before any diffusion, with one job: squash an image into a small latent and decode it back faithfully. It never sees noise and knows nothing about diffusion. Once trained, you freeze it. All the diffusion now happens on these small latents instead of big images, which is what makes it cheap.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://nakranivaibhav.github.io/assets/images/diffusion-without-the-hand-waving/im4.png" class="img-fluid figure-img"></p>
+<figcaption>vae</figcaption>
+</figure>
+</div>
+<p>The text encoder is the text half of a CLIP model, also trained earlier and frozen. Its job is to turn a caption into an embedding. That embedding is how the prompt steers generation. It enters the U-Net through cross-attention, so the gradient now points toward realistic and matches this caption.</p>
+<p>Here’s the actual training flow, start to finish: - Take an (image, caption) pair. - Caption goes through the frozen text encoder. Out comes a text embedding. - Image goes through the frozen VAE encoder. Out comes a clean latent. - Pick a random timestep. Blend the clean latent with random noise according to that timestep. Low timestep is mostly clean latent, high timestep is mostly noise. This is a one-shot formula, you do not iterate here. - That noisy latent, the timestep, and the text embedding go into the U-Net. - The U-Net predicts the noise that was added. - Loss is MSE between the real noise and the predicted noise. Only the U-Net updates. VAE and text encoder stay frozen.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://nakranivaibhav.github.io/assets/images/diffusion-without-the-hand-waving/im5.png" class="img-fluid figure-img"></p>
+<figcaption>diffusion training process</figcaption>
+</figure>
+</div>
+<p>Step 4 is the thing people get stuck on. You do not add noise to the image. You encode the image to a latent first, then add noise to the latent with a formula. The clean latent is the target, the noise is what the model predicts.</p>
+<p>Generation is the same pipeline in reverse:</p>
+<ul>
+<li>Caption through the text encoder, get the embedding.</li>
+<li>Start from a pure noise latent.</li>
+<li>Each step, the U-Net predicts the noise from the current latent, the timestep, and the text embedding. The sampler uses that to step to a slightly cleaner latent. Repeat.</li>
+<li>You end with a clean latent. Run it through the VAE decoder to get the final image.</li>
+</ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://nakranivaibhav.github.io/assets/images/diffusion-without-the-hand-waving/im2.png" class="img-fluid figure-img"></p>
+<figcaption>forward pass diffusion</figcaption>
+</figure>
+</div>
+<p>And the network itself is swappable. Replace the U-Net with something else and you get modern DiT backbones. Same training flow, same everything else.</p>
+<p>So the whole thing is still three pieces: A direction that says which way is more realistic. A network that learns it by predicting noise. A sampler that walks that direction from noise to image.</p>
+<p>The VAE and text encoder are just the frozen helpers that make it cheap and controllable. Everything else is detail.</p>
+<p>Optional: both the vae and the text encoder can be fine-tuned when tuning these models. text encoder tuning is more beneficial generally than vae from my expreiments.</p>
+<p><em>Inspired by <a href="https://course.fast.ai/Lessons/lesson9.html">fast.ai Practical Deep Learning, Lesson 9</a>. If you want the long version, the lesson has the full lecture video walking through all of this end to end. Grab a coffee, it’s worth the couple of hours.</em></p>
+
+
+
+ ]]></description>
+  <category>machine-learning</category>
+  <guid>https://nakranivaibhav.github.io/posts/diffusion-without-the-hand-waving.html</guid>
+  <pubDate>Sat, 27 Jun 2026 18:30:00 GMT</pubDate>
+  <media:content url="https://nakranivaibhav.github.io/assets/images/diffusion-without-the-hand-waving/im1.png" medium="image" type="image/png" height="108" width="144"/>
+</item>
+</channel>
+</rss>

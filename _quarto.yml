@@ -1,0 +1,32 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Vaibhav Nakrani"
+  description: >-
+    ML and Agentic AI, explained without the hand-waving. Notes on diffusion,
+    agents, computer vision, and whatever I'm currently figuring out.
+  site-url: https://nakranivaibhav.github.io
+  navbar:
+    right:
+      - text: About
+        href: about.qmd
+      - icon: github
+        href: https://github.com/nakranivaibhav
+      - icon: rss
+        href: index.xml
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-copy: true
+    include-in-header:
+      text: |
+        <!-- GoatCounter analytics (privacy-friendly, cookieless) -->
+        <script data-goatcounter="https://nakranivaibhav.goatcounter.com/count"
+                async src="//gc.zgo.at/count.js"></script>
+
+execute:
+  enabled: false

@@ -1,0 +1,205 @@
+---
+title: "A Visual Guide to Causal, Bidirectional, and Hybrid Inference in Video Generation"
+subtitle: "How information flow changes across video time and denoising time"
+author: "Vaibhav Nakrani"
+date: 2026-07-11
+categories: [machine-learning]
+---
+
+
+```{=html}
+<style>
+.schedule { display:grid; grid-template-columns:6.5rem repeat(4,minmax(4.7rem,1fr)); gap:.42rem; margin:1.2rem 0 .65rem; }
+.schedule > div { min-height:3.2rem; padding:.55rem .35rem; border:1px solid #cbd5e1; border-radius:.45rem; display:flex; align-items:center; justify-content:center; text-align:center; font-size:.9rem; }
+.schedule .axis { border:0; justify-content:flex-end; color:#475569; font-weight:600; }
+.schedule .head { min-height:auto; border:0; font-weight:700; color:#334155; }
+.unknown { background:#f1f5f9; color:#64748b; }
+.rough { background:#dbeafe; border-color:#60a5fa !important; color:#1e3a8a; }
+.mid { background:#bfdbfe; border-color:#3b82f6 !important; color:#1e3a8a; }
+.ready { background:#2563eb; border-color:#1d4ed8 !important; color:white; }
+.current { outline:3px solid #f59e0b; outline-offset:1px; }
+.legend { display:flex; flex-wrap:wrap; gap:1rem; margin:.4rem 0 1.1rem; color:#475569; font-size:.9rem; }
+.swatch { display:inline-block; width:.8rem; height:.8rem; margin-right:.3rem; border-radius:.18rem; vertical-align:-.05rem; }
+.checkpoint { border-left:4px solid #f59e0b; background:#fffbeb; padding:.8rem 1rem; margin:1.2rem 0; }
+</style>
+```
+
+“Causal” and “bidirectional” sound like labels attached permanently to a video model. One model moves left to right; another sees the whole clip. Pick an architecture, inherit its behavior.
+
+That picture is useful, but incomplete. A generator also needs a policy for deciding **which parts of a noisy video may exchange information, and when**. Once we look at that policy, causal and bidirectional generation become endpoints of a larger scheduling problem.
+
+I want to build that idea with four chunks of an imaginary video. No benchmark is hiding in the diagrams. They show information availability, not speed or quality measurements.
+
+## Start with what each position is allowed to know
+
+Suppose we split a video into four consecutive chunks: A, B, C, and D. A **chunk** is simply a group of neighboring video positions. It might contain one frame, several frames, or latent video tokens rather than pixels.
+
+In causal generation, a position may use an available prefix: the current chunk and earlier chunks, but not later chunks that have not been generated. When producing C, information from A and B can flow forward; D cannot flow backward.
+
+In bidirectional generation, positions across the clip may condition on one another while the clip is being refined. A rough state in A can influence D, and D can influence A. “Bidirectional” describes information flow, not playback direction. The finished video still plays from beginning to end.
+
+The tempting model is therefore:
+
+- causal means `A → B → C → D`;
+- bidirectional means `{A, B, C, D}` are refined together.
+
+Nothing is wrong with those endpoints. The mistake is assuming there can be no useful schedule between them.
+
+## There are two kinds of time on the page
+
+Diffusion adds a second clock. **Video time** tells us whether a chunk appears early or late in the clip. **Denoising time** tells us how far a noisy representation has been refined toward a clean one.
+
+The grid below keeps these clocks separate. Columns run through the video. Rows move from a rough, noisy state toward a ready state. A row is not another moment in the story; it is another stage in the computation.
+
+::: {.schedule}
+<div></div><div class="head">A<br>earliest</div><div class="head">B</div><div class="head">C</div><div class="head">D<br>latest</div>
+<div class="axis">rough state</div><div class="rough">A · rough</div><div class="rough">B · rough</div><div class="rough">C · rough</div><div class="rough">D · rough</div>
+<div class="axis">more refined</div><div class="mid">A · refining</div><div class="mid">B · refining</div><div class="mid">C · refining</div><div class="mid">D · refining</div>
+<div class="axis">ready state</div><div class="ready">A · ready</div><div class="ready">B · ready</div><div class="ready">C · ready</div><div class="ready">D · ready</div>
+:::
+
+::: {.legend}
+<span><span class="swatch rough"></span>rough</span>
+<span><span class="swatch mid"></span>partly refined</span>
+<span><span class="swatch ready"></span>ready</span>
+:::
+
+This separation matters because a schedule can change along either axis. It can group more or fewer neighboring video positions, and it can change those groups as denoising progresses.
+
+::: {.checkpoint}
+**Pause and predict:** must D be completely unknown until A is ready? A strictly causal schedule says yes. A hybrid schedule does not have to.
+:::
+
+## The rigid endpoints
+
+The tabs show two idealized reveal orders. Step through them from left to right. “Available” means the scheduler allows that region to participate; it does not mean the model has rendered a viewable frame at that instant.
+
+::: {.panel-tabset}
+
+### Bidirectional
+
+::: {.schedule}
+<div></div><div class="head">A</div><div class="head">B</div><div class="head">C</div><div class="head">D</div>
+<div class="axis">1 · rough</div><div class="rough current">available</div><div class="rough current">available</div><div class="rough current">available</div><div class="rough current">available</div>
+<div class="axis">2 · refine</div><div class="mid">together</div><div class="mid">together</div><div class="mid">together</div><div class="mid">together</div>
+<div class="axis">3 · ready</div><div class="ready">ready</div><div class="ready">ready</div><div class="ready">ready</div><div class="ready">ready</div>
+:::
+
+All four chunks enter the computation together and can help establish a global plan. The price of this simple picture is that the full working set must be handled together; it also does not naturally emit a completed prefix while later chunks remain absent.
+
+### Causal · after A
+
+::: {.schedule}
+<div></div><div class="head">A</div><div class="head">B</div><div class="head">C</div><div class="head">D</div>
+<div class="axis">rough</div><div class="rough">available</div><div class="unknown">not available</div><div class="unknown">not available</div><div class="unknown">not available</div>
+<div class="axis">refine</div><div class="mid">refining</div><div class="unknown">not available</div><div class="unknown">not available</div><div class="unknown">not available</div>
+<div class="axis">ready</div><div class="ready current">A ready</div><div class="unknown">not available</div><div class="unknown">not available</div><div class="unknown">not available</div>
+:::
+
+A is completed without future chunks. This makes a finished prefix possible, but A cannot use evidence that will appear only in C or D.
+
+### Causal · after B
+
+::: {.schedule}
+<div></div><div class="head">A</div><div class="head">B</div><div class="head">C</div><div class="head">D</div>
+<div class="axis">rough</div><div class="ready">past context</div><div class="rough">available</div><div class="unknown">not available</div><div class="unknown">not available</div>
+<div class="axis">refine</div><div class="ready">past context</div><div class="mid">refining</div><div class="unknown">not available</div><div class="unknown">not available</div>
+<div class="axis">ready</div><div class="ready">A ready</div><div class="ready current">B ready</div><div class="unknown">not available</div><div class="unknown">not available</div>
+:::
+
+B may use A as context. C and D still cannot help. Repeating the pattern eventually completes the clip from left to right.
+
+:::
+
+These diagrams deliberately exaggerate the contrast. Real systems differ in caching, attention masks, chunk size, and what counts as “ready.” The grid gives us a vocabulary for asking about those details instead of treating the labels as complete specifications.
+
+## A schedule can live between the endpoints
+
+[Flex-Forcing](https://arxiv.org/abs/2607.03509) makes chunking flexible over both the temporal dimension and denoising steps. The same video diffusion model can operate under bidirectional, autoregressive, and hybrid generation regimes. Its [project page](https://research.nvidia.com/labs/genair/flex-forcing/) describes larger chunks as closer to global bidirectional planning and smaller chunks as closer to autoregressive streaming.
+
+Here is a conceptual four-chunk hybrid. It is an explanatory sketch, not the paper’s exact tensor layout or a reproduced experimental configuration.
+
+::: {.panel-tabset}
+
+### 1 · rough plan
+
+::: {.schedule}
+<div></div><div class="head">A</div><div class="head">B</div><div class="head">C</div><div class="head">D</div>
+<div class="axis">rough</div><div class="rough current">global hint</div><div class="rough current">global hint</div><div class="rough current">global hint</div><div class="rough current">global hint</div>
+<div class="axis">refine</div><div class="unknown">pending</div><div class="unknown">pending</div><div class="unknown">pending</div><div class="unknown">pending</div>
+<div class="axis">ready</div><div class="unknown">pending</div><div class="unknown">pending</div><div class="unknown">pending</div><div class="unknown">pending</div>
+:::
+
+All chunks receive a rough global context. Later positions are not finished, but they are not entirely absent either. This is the bidirectional part of the mental model.
+
+### 2 · finish A
+
+::: {.schedule}
+<div></div><div class="head">A</div><div class="head">B</div><div class="head">C</div><div class="head">D</div>
+<div class="axis">rough</div><div class="rough">global hint</div><div class="rough">global hint</div><div class="rough">global hint</div><div class="rough">global hint</div>
+<div class="axis">refine</div><div class="mid">refined</div><div class="rough">planned</div><div class="rough">planned</div><div class="rough">planned</div>
+<div class="axis">ready</div><div class="ready current">A ready</div><div class="unknown">pending</div><div class="unknown">pending</div><div class="unknown">pending</div>
+:::
+
+A can now be completed while the rough plan for B–D remains available. Fine synthesis moves forward even though coarse planning did not.
+
+### 3 · finish B
+
+::: {.schedule}
+<div></div><div class="head">A</div><div class="head">B</div><div class="head">C</div><div class="head">D</div>
+<div class="axis">rough</div><div class="rough">global hint</div><div class="rough">global hint</div><div class="rough">global hint</div><div class="rough">global hint</div>
+<div class="axis">refine</div><div class="ready">past context</div><div class="mid">refined</div><div class="rough">planned</div><div class="rough">planned</div>
+<div class="axis">ready</div><div class="ready">A ready</div><div class="ready current">B ready</div><div class="unknown">pending</div><div class="unknown">pending</div>
+:::
+
+B uses the completed prefix and the wider plan. Call this “autoregressive synthesis within the plan”: left-to-right completion—not that every internal operation must be strictly causal.
+
+### 4 · complete
+
+::: {.schedule}
+<div></div><div class="head">A</div><div class="head">B</div><div class="head">C</div><div class="head">D</div>
+<div class="axis">rough</div><div class="rough">global hint</div><div class="rough">global hint</div><div class="rough">global hint</div><div class="rough">global hint</div>
+<div class="axis">refine</div><div class="ready">refined</div><div class="ready">refined</div><div class="ready">refined</div><div class="ready">refined</div>
+<div class="axis">ready</div><div class="ready">A ready</div><div class="ready">B ready</div><div class="ready">C ready</div><div class="ready current">D ready</div>
+:::
+
+The result is still an ordinary video. What changed was the reveal order of intermediate information.
+
+:::
+
+The paper’s claim is broader than this toy schedule. Flex-Forcing defines flexible chunking jointly over video positions and denoising steps, supports chunk sizes chosen for different device budgets, and permits any-order, any-timestep autoregressive generation without a strict causal constraint. The authors also report better video quality, long-video stability, and faster inference than rigid-schedule baselines across their experiments ([paper abstract](https://arxiv.org/abs/2607.03509); [project results](https://research.nvidia.com/labs/genair/flex-forcing/)). Those are results for the evaluated configurations, not a guarantee that every hybrid schedule improves every metric.
+
+The project page offers one concrete example of why the schedule itself matters. For a five-second video represented by 21 latent frames, it reports that a coarse-to-fine chunk configuration `[9, 6, 6]` lies on its measured quality–speed frontier and outperforms uniform `[7, 7, 7]` and its Self-Forcing baseline on the displayed measures. The numbers describe chunk configurations in that experiment; they are not denoising-step counts or a universal recipe.
+
+## The policy changes the questions we should ask
+
+Once generation becomes a schedule, “Is this model causal?” is too coarse. More useful questions are:
+
+- Which video positions are grouped into a chunk?
+- Can rough future positions influence the current chunk?
+- Does chunk size change along the denoising trajectory?
+- When is the first usable prefix available?
+- Which intermediate states must remain in memory?
+- Can a later chunk be edited without rebuilding the whole sequence?
+
+Different answers can trade global planning, streaming behavior, memory use, and fine-grained control. The direction of those trade-offs is plausible from the information-flow pattern, but their size requires matched experiments on the same model, outputs, hardware, and quality target. A grid cannot produce a latency number.
+
+Flex-Forcing also demonstrates why “inference policy” is a useful phrase rather than just a metaphor. Its project page describes editing at low-level refinement steps while keeping high-level planning fixed, and allowing a chunk to attend to both past and future tokens. The schedule determines which information can move and which parts can change.
+
+## LingBot exposes a different kind of inference policy
+
+LingBot-Video is useful here as a contrast, not as another Flex-Forcing implementation. Its public [repository](https://github.com/robbyant/lingbot-video) and [model card](https://huggingface.co/robbyant/lingbot-video-moe-30b-a3b) expose a user-facing workflow with prompt rewriting, base video generation, an optional refiner, and multiple serving paths. The documented MoE text-to-video command uses a 40-step base stage followed by an 8-step refiner stage.
+
+That sequence is also an inference policy: it decides how a prompt is prepared and how generation is divided across two denoising stages. But it operates along different axes from Flex-Forcing’s joint temporal-and-denoising chunk schedule. `40 + 8` does not tell us whether information flows causally or bidirectionally across video chunks, and the public LingBot materials cited here do not claim Flex-Forcing’s mechanism.
+
+The comparison therefore stops at a shared lesson: a model’s weights and architecture do not completely describe the behavior a user receives. Scheduling, refinement, conditioning, and serving choices are part of the generation path. The two systems expose different choices, so their counters cannot be placed on one speed scale without a matched evaluation.
+
+## A compact way to explain it back
+
+Try drawing a grid with video position on the horizontal axis and denoising progress on the vertical axis.
+
+A rigid bidirectional schedule refines a large region together. A rigid causal schedule completes regions from left to right, leaving future regions unavailable. A flexible schedule can make rough information available across a wide region, then complete finer regions in an autoregressive order. Flex-Forcing turns that two-axis chunking pattern into a training and inference framework for one model.
+
+This mental model establishes **how** causal and bidirectional behavior can become scheduling choices. It does not establish the best schedule for a deployment, the memory required by an implementation, or a speed comparison with LingBot. Those answers need released implementations or matched measurements.
+
+The next time a video model is called “causal” or “bidirectional,” the useful follow-up is not “which one is better?” It is: **what information becomes available at each point in video time and denoising time?**

@@ -1,0 +1,345 @@
+---
+title: "NVFP4 Is a Scaling System, Not Just a 4-Bit Number"
+subtitle: "What the payload, block scale, and tensor scale each do, and when a 4-bit claim holds up"
+author: "Vaibhav Nakrani"
+date: 2026-07-18
+categories: [machine-learning]
+---
+
+```{=html}
+<style>
+.nv-lab {
+  border: 1px solid #cbd5e1;
+  border-radius: .8rem;
+  background: #f8fafc;
+  margin: 1.25rem 0;
+  padding: 1rem 1.1rem;
+}
+.nv-lab h3 { margin-top: 0; font-size: 1.05rem; }
+.nv-lab-note { color: #475569; font-size: .92rem; margin-bottom: 1rem; }
+.nv-controls { display: grid; grid-template-columns: repeat(3, minmax(10rem, 1fr)); gap: 1rem; }
+.nv-control { display: flex; flex-direction: column; gap: .4rem; }
+.nv-control label { font-weight: 650; color: #1e293b; }
+.nv-control select, .nv-control input { width: 100%; }
+.nv-control output { font-variant-numeric: tabular-nums; color: #1d4ed8; font-weight: 700; }
+.nv-equation {
+  margin: 1rem 0 .75rem;
+  padding: .9rem;
+  border-radius: .6rem;
+  background: #eff6ff;
+  color: #1e3a8a;
+  text-align: center;
+  font: 700 1.1rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.nv-scope-grid, .nv-metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .65rem; }
+.nv-scope, .nv-metric { border-radius: .55rem; background: white; border: 1px solid #dbe3ec; padding: .7rem; }
+.nv-scope strong, .nv-metric strong { display: block; color: #0f172a; }
+.nv-scope span, .nv-metric span { color: #475569; font-size: .88rem; }
+.nv-codebook { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .75rem; }
+.nv-code { background: #e2e8f0; border-radius: 99px; padding: .18rem .5rem; font: .85rem ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.nv-code.active { background: #2563eb; color: white; }
+.nv-stack { display: flex; height: 1.5rem; overflow: hidden; border-radius: .35rem; margin: 1rem 0 .45rem; background: #e2e8f0; }
+.nv-stack-payload { background: #2563eb; }
+.nv-stack-local { background: #f59e0b; min-width: 2px; }
+.nv-stack-global { background: #7c3aed; min-width: 2px; }
+.nv-legend { display: flex; flex-wrap: wrap; gap: .8rem; font-size: .86rem; color: #475569; }
+.nv-swatch { display: inline-block; width: .75rem; height: .75rem; border-radius: .18rem; margin-right: .25rem; vertical-align: -.05rem; }
+.nv-payload { background: #2563eb; } .nv-local { background: #f59e0b; } .nv-global { background: #7c3aed; }
+.nv-result { margin: .9rem 0 0; color: #334155; }
+@media (max-width: 760px) {
+  .nv-controls, .nv-scope-grid, .nv-metric-grid { grid-template-columns: 1fr; }
+}
+</style>
+```
+
+Suppose a model tensor is stored in NVFP4. It is tempting to picture every entry as a miniature, self-contained FP16 value: four bits go in, one approximate real number comes out, and the rest is a hardware detail.
+
+That picture is incomplete. The four bits only select from a tiny set of normalized values. To reconstruct a value in the tensor's actual range, NVFP4 also needs a scale shared by a small block and another scale shared by the whole tensor.
+
+The question I want to resolve is therefore narrower than “Is FP4 good?” It is: **what job do the payload, block scale, and tensor scale each perform, and when can that representation help a real workload?**
+
+I will assume familiarity with tensors, ordinary floating point, quantization, and matrix multiplication. Everything specific to FP4 and NVIDIA's implementation starts from scratch.
+
+## Four bits do not provide many choices
+
+A floating-point layout is often named by how many exponent and mantissa bits it contains. **E2M1** has one sign bit, two exponent bits, and one mantissa bit. Together, they make a four-bit payload, so E2M1 is one kind of FP4.
+
+Ignoring the sign, its finite magnitudes are:
+
+`0, 0.5, 1, 1.5, 2, 3, 4, 6`
+
+The sign bit mirrors the nonzero values below zero. This is a very small **codebook**, meaning the set of values the bit patterns can select. NVIDIA documents this E2M1 payload as the element format used by NVFP4 ([Transformer Engine documentation](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/features/low_precision_training/nvfp4/nvfp4.html)).
+
+Now consider a block whose useful values cluster near `0.01`, and another whose values cluster near `100`. A bare E2M1 codebook cannot closely cover both neighborhoods. Its largest finite magnitude is `6`, and the gaps between available values are large relative to many tensors.
+
+Quantization solves this by treating the codebook values as numbers in a local unit rather than final tensor values. A scale defines that unit. The payload says “four units”; the scale says how large one unit is here.
+
+## The smallest example: the same payload, two real values
+
+NVFP4 reconstructs a value with three factors:
+
+`x = x_e2m1 × s_block × s_global`
+
+Their scopes are more important than their names:
+
+- `x_e2m1` is the four-bit code stored for one element.
+- `s_block` is a scale shared by a local block of 16 elements.
+- `s_global` is a scale shared by the whole tensor.
+
+Take two 16-value blocks and fix the tensor-wide scale at `s_global = 0.25`.
+
+```text
+Tensor-wide scale: s_global = 0.25
+
+Block A: s_block = 1.0       Block B: s_block = 1.5
+         payload = 4                  payload = 4
+              |                            |
+              v                            v
+      4 × 1.0 × 0.25 = 1.0        4 × 1.5 × 0.25 = 1.5
+```
+
+Both elements contain the same E2M1 payload. Yet one reconstructs to `1.0` and the other to `1.5`, because each block uses a different local unit. The payload is not a standalone measurement; it is a code interpreted within two shared coordinate systems.
+
+The explorer below lets you vary those three factors separately. Choose an exact E2M1 payload, then move the block scale or tensor scale. The block control changes the unit for one toy 16-value neighborhood; the tensor control changes the unit shared by every block. The blue result is the reconstructed value, not a quantization-error or model-quality measurement.
+
+```{=html}
+<section class="nv-lab" id="nv-scale-lab" aria-labelledby="nv-scale-title">
+  <h3 id="nv-scale-title">Toy explorer: one stored code, two scaling levels</h3>
+  <p class="nv-lab-note"><strong>Toy calculation, not benchmark data.</strong> The controls use exact codebook values and simplified scale choices to expose the reconstruction rule.</p>
+  <div class="nv-controls">
+    <div class="nv-control">
+      <label for="nv-payload-input">Stored E2M1 value</label>
+      <select id="nv-payload-input">
+        <option value="-6">−6</option><option value="-4">−4</option><option value="-3">−3</option>
+        <option value="-2">−2</option><option value="-1.5">−1.5</option><option value="-1">−1</option>
+        <option value="-0.5">−0.5</option><option value="0">0</option><option value="0.5">0.5</option>
+        <option value="1">1</option><option value="1.5">1.5</option><option value="2">2</option>
+        <option value="3">3</option><option value="4" selected>4</option><option value="6">6</option>
+      </select>
+      <span>Selects one normalized codebook value.</span>
+    </div>
+    <div class="nv-control">
+      <label for="nv-block-input">Block scale: <output id="nv-block-value">1.50</output></label>
+      <input id="nv-block-input" type="range" min="0.25" max="2" step="0.25" value="1.5">
+      <span>Shared by this toy block of 16 values.</span>
+    </div>
+    <div class="nv-control">
+      <label for="nv-global-input">Tensor scale: <output id="nv-global-value">0.25</output></label>
+      <input id="nv-global-input" type="range" min="0.05" max="1" step="0.05" value="0.25">
+      <span>Shared by every block in the toy tensor.</span>
+    </div>
+  </div>
+  <div class="nv-codebook" id="nv-codebook" aria-label="Signed E2M1 codebook values"></div>
+  <div class="nv-equation" id="nv-equation" aria-live="polite">4 × 1.50 × 0.25 = 1.50</div>
+  <div class="nv-scope-grid">
+    <div class="nv-scope"><strong>Payload</strong><span>Chooses a normalized E2M1 value for one element.</span></div>
+    <div class="nv-scope"><strong>Block scale</strong><span>Changes the local unit for one 16-value neighborhood.</span></div>
+    <div class="nv-scope"><strong>Tensor scale</strong><span>Places all local units within one tensor-wide range.</span></div>
+  </div>
+  <p class="nv-result" id="nv-scale-reading">With the defaults, the stored code 4 becomes 1.5 in real tensor units.</p>
+</section>
+<script>
+(() => {
+  const payloadInput = document.getElementById('nv-payload-input');
+  const blockInput = document.getElementById('nv-block-input');
+  const globalInput = document.getElementById('nv-global-input');
+  const blockValue = document.getElementById('nv-block-value');
+  const globalValue = document.getElementById('nv-global-value');
+  const equation = document.getElementById('nv-equation');
+  const reading = document.getElementById('nv-scale-reading');
+  const codebook = document.getElementById('nv-codebook');
+  const values = [-6, -4, -3, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 3, 4, 6];
+  const clean = value => {
+    const rounded = Math.round(value * 10000) / 10000;
+    return Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toString();
+  };
+  values.forEach(value => {
+    const chip = document.createElement('span');
+    chip.className = 'nv-code';
+    chip.dataset.value = value;
+    chip.textContent = clean(value);
+    codebook.appendChild(chip);
+  });
+  const update = () => {
+    const payload = Number(payloadInput.value);
+    const block = Number(blockInput.value);
+    const global = Number(globalInput.value);
+    const result = payload * block * global;
+    blockValue.value = block.toFixed(2);
+    globalValue.value = global.toFixed(2);
+    equation.textContent = `${clean(payload)} × ${block.toFixed(2)} × ${global.toFixed(2)} = ${clean(result)}`;
+    reading.textContent = `The four-bit selection is still ${clean(payload)}. Under this block's local unit and the tensor-wide unit, it reconstructs to ${clean(result)}.`;
+    codebook.querySelectorAll('.nv-code').forEach(chip => chip.classList.toggle('active', Number(chip.dataset.value) === payload));
+  };
+  [payloadInput, blockInput, globalInput].forEach(input => input.addEventListener('input', update));
+  update();
+})();
+</script>
+```
+
+Try leaving the payload at `4` and changing only the block scale from `1.0` to `1.5`. The selected four-bit value does not move, but the reconstructed result does. Changing the tensor scale then moves every local unit together. This is the division of labor that the phrase “two-level scaling” can otherwise hide.
+
+Why two levels instead of one? The block scale adapts the codebook to a small neighborhood, where values are more likely to have a similar range. The global scale places those local scales within the range that their own storage format can represent. Transformer Engine describes the same hierarchy and derives the global scale from the tensor's maximum absolute value before deriving local scales from block maxima ([Transformer Engine documentation](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/features/low_precision_training/nvfp4/nvfp4.html)).
+
+The format names can now be attached without hiding their roles:
+
+- The element payload is **E2M1**, a four-bit floating-point code.
+- Each group of 16 payloads shares an **E4M3** scale. E4M3 is an eight-bit floating-point format with four exponent and three mantissa bits, so its scale can take fractional values between powers of two.
+- The tensor shares an **FP32** global scale, stored in ordinary 32-bit floating point.
+
+This hierarchy is what **two-level scaling** means in NVFP4: a local scale per block, followed by a global scale per tensor. **Per-block scaling** adapts to variation among small groups. **Per-tensor scaling** provides one range-setting factor for the entire tensor. Neither phrase says that every operation or every piece of model state is stored at that precision.
+
+## “4-bit” is a payload count, not a memory measurement
+
+Once the local scale is visible, a common storage shortcut breaks.
+
+One block contains 16 four-bit payloads and one eight-bit local scale:
+
+`16 × 4 + 8 = 72 bits`
+
+Amortized across the block:
+
+`72 / 16 = 4.5 bits per value`
+
+So the basic payload-plus-local-scale representation is already 4.5 bits per value, not four. The tensor's FP32 global scale adds a small amortized cost whose size depends on the number of elements in that tensor.
+
+The next explorer makes that amortization visible. Move the slider to change the number of 16-value blocks in one toy tensor. It counts four payload bits per value, one eight-bit local scale per block, and one 32-bit global scale for the tensor. It intentionally excludes padding, alignment, duplicate layouts, high-precision components, and runtime buffers, so its result is a representation calculation rather than an application-memory forecast.
+
+```{=html}
+<section class="nv-lab" id="nv-storage-lab" aria-labelledby="nv-storage-title">
+  <h3 id="nv-storage-title">Toy explorer: payload bits plus scale metadata</h3>
+  <p class="nv-lab-note"><strong>Defined assumptions:</strong> 16 values per block, 4 payload bits per value, one 8-bit block scale, and one 32-bit tensor scale. No padding or runtime state is included.</p>
+  <div class="nv-control">
+    <label for="nv-block-count">Tensor size: <output id="nv-tensor-values">1,024 values</output></label>
+    <input id="nv-block-count" type="range" min="0" max="10" step="1" value="6">
+    <span>Each step doubles the number of 16-value blocks.</span>
+  </div>
+  <div class="nv-stack" aria-label="Share of counted bits by component">
+    <div class="nv-stack-payload" id="nv-stack-payload" title="E2M1 payload bits"></div>
+    <div class="nv-stack-local" id="nv-stack-local" title="E4M3 local-scale bits"></div>
+    <div class="nv-stack-global" id="nv-stack-global" title="FP32 global-scale bits"></div>
+  </div>
+  <div class="nv-legend">
+    <span><span class="nv-swatch nv-payload"></span>E2M1 payloads</span>
+    <span><span class="nv-swatch nv-local"></span>E4M3 block scales</span>
+    <span><span class="nv-swatch nv-global"></span>FP32 tensor scale</span>
+  </div>
+  <div class="nv-metric-grid">
+    <div class="nv-metric"><strong id="nv-payload-bits">4,096 bits</strong><span>payload</span></div>
+    <div class="nv-metric"><strong id="nv-scale-bits">544 bits</strong><span>all scale metadata</span></div>
+    <div class="nv-metric"><strong id="nv-bits-per-value">4.531 bits/value</strong><span>under these assumptions</span></div>
+  </div>
+  <p class="nv-result" id="nv-storage-reading">At 1,024 values, the single global scale is already thinly amortized. The local scale still contributes 0.5 bit per value.</p>
+</section>
+<script>
+(() => {
+  const blockCountInput = document.getElementById('nv-block-count');
+  const tensorValues = document.getElementById('nv-tensor-values');
+  const payloadBitsOut = document.getElementById('nv-payload-bits');
+  const scaleBitsOut = document.getElementById('nv-scale-bits');
+  const bitsPerValueOut = document.getElementById('nv-bits-per-value');
+  const payloadBar = document.getElementById('nv-stack-payload');
+  const localBar = document.getElementById('nv-stack-local');
+  const globalBar = document.getElementById('nv-stack-global');
+  const reading = document.getElementById('nv-storage-reading');
+  const number = value => value.toLocaleString('en-US');
+  const update = () => {
+    const blocks = 2 ** Number(blockCountInput.value);
+    const values = blocks * 16;
+    const payloadBits = values * 4;
+    const localBits = blocks * 8;
+    const globalBits = 32;
+    const scaleBits = localBits + globalBits;
+    const totalBits = payloadBits + scaleBits;
+    const bitsPerValue = totalBits / values;
+    tensorValues.value = `${number(values)} values (${number(blocks)} ${blocks === 1 ? 'block' : 'blocks'})`;
+    payloadBitsOut.textContent = `${number(payloadBits)} bits`;
+    scaleBitsOut.textContent = `${number(scaleBits)} bits`;
+    bitsPerValueOut.textContent = `${bitsPerValue.toFixed(3)} bits/value`;
+    payloadBar.style.width = `${100 * payloadBits / totalBits}%`;
+    localBar.style.width = `${100 * localBits / totalBits}%`;
+    globalBar.style.width = `${100 * globalBits / totalBits}%`;
+    reading.textContent = `At ${number(values)} values, the local scales contribute 0.5 bit per value. The one tensor scale contributes ${(globalBits / values).toFixed(3)} more, giving ${bitsPerValue.toFixed(3)} bits/value before any uncounted system overhead.`;
+  };
+  blockCountInput.addEventListener('input', update);
+  update();
+})();
+</script>
+```
+
+At the smallest setting, the one global scale is expensive because only 16 values share it. As the toy tensor grows, that one-time cost fades, while the local-scale cost remains fixed at `8 / 16 = 0.5` bit per value. The output approaches 4.5 bits per value but never turns the calculation into a full-memory estimate.
+
+Even 4.5 bits is not a full runtime-memory prediction. Transformer Engine documents padded and swizzled scale layouts and a TN-only NVFP4 GEMM layout; training may also keep rowwise and columnwise representations of weights ([Transformer Engine documentation](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/features/low_precision_training/nvfp4/nvfp4.html)). Alignment, padding, higher-precision layers, activations, optimizer state, KV cache, workspaces, and framework allocations all remain outside the small calculation.
+
+Comparing payloads alone, four bits are one quarter of a BF16 payload and one half of an FP8 payload. Those ratios are useful for understanding the upper-level opportunity. They do not establish a fourfold reduction in total application memory.
+
+## Generic FP4, MXFP4, and NVFP4
+
+“FP4” is not a complete deployment specification. It can identify a four-bit element format such as E2M1 without telling us how a tensor is scaled. Two systems can store the same E2M1 payload and reconstruct it differently.
+
+MXFP4 makes the comparison concrete. **MXFP4**, the FP4 member of the OCP microscaling family, also uses E2M1 payloads. It shares one **E8M0** scale across 32 values. E8M0 has eight exponent bits and no mantissa, so its scale is restricted to powers of two. NVFP4 instead shares an E4M3 fractional scale across 16 values and adds the FP32 scale for the tensor ([NVIDIA's NVFP4 technical overview](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/)).
+
+| Property | Generic FP4 / E2M1 | MXFP4 | NVFP4 |
+|---|---|---|---|
+| Element payload | May be E2M1 | E2M1 | E2M1 |
+| Local scale | Not specified by the name | E8M0, powers of two | E4M3, fractional FP8 |
+| Values per local scale | Not specified | 32 | 16 |
+| Second scaling level | Not specified | None in the MX definition | One FP32 scale per tensor |
+
+The table is a comparison of representations, not model quality. NVFP4 gets two ways to fit a local distribution more closely: its scale covers half as many elements, and that scale can sit between powers of two. NVIDIA illustrates lower quantization error from these choices, but a representation-error example is not an end-to-end accuracy result ([NVIDIA's NVFP4 technical overview](https://developer.nvidia.com/blog/introducing-nvfp4-for-efficient-and-accurate-low-precision-inference/)). Smaller blocks also mean more scale metadata and handling.
+
+The better mental model is now precise: generic FP4 names a payload class; MXFP4 and NVFP4 specify different systems around an E2M1 payload.
+
+## A format is not a training recipe
+
+If scaling were the whole story, low-precision training would amount to casting tensors and calling the same matrix multiplications. NVIDIA's documented NVFP4 training path contains several additional mechanisms.
+
+**Two-dimensional weight scaling** changes the grouping used for weights. Transformer Engine uses 16-by-16 tiles by default so rowwise and columnwise weight representations can support the forward and backward matrix multiplications. Activations and gradients use one-dimensional 16-value blocks.
+
+**Stochastic rounding** chooses probabilistically between neighboring representable values instead of always taking the nearest one. For a gradient between two E2M1 values, the probabilities are chosen so the expected rounded value equals the original value. Transformer Engine enables this for gradient quantization. “Unbiased in expectation” does not mean an individual rounding is exact, and the added randomness has reproducibility implications.
+
+A **Random Hadamard Transform** is an orthogonal mixing operation applied to selected operands before quantization. Its purpose here is to spread isolated large values across coordinates so that one outlier is less likely to set an unhelpful scale for an entire block. Transformer Engine currently documents this path for BF16 inputs and gradients used in selected weight-gradient operations ([Transformer Engine documentation](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/features/low_precision_training/nvfp4/nvfp4.html)).
+
+The broader recipe also retains higher precision for sensitive layers or operations. In other words, “NVFP4 training” is mixed-precision training built around NVFP4 matrix multiplications, not a claim that the whole training state and every computation use four bits.
+
+NVIDIA reports pretraining a 12-billion-parameter model for 10 trillion tokens with loss and downstream accuracy comparable to an FP8 baseline using this combined method ([NVFP4 training paper](https://arxiv.org/abs/2509.25149)). This is evidence for the model, data, schedule, hardware, and recipe in that experiment. It is not evidence that naive E2M1 conversion works for arbitrary architectures, or that every model will match FP8.
+
+## Hardware support still needs a full sentence
+
+NVFP4 is designed for native block-scaled matrix operations on NVIDIA Blackwell Tensor Cores. But “Blackwell supports NVFP4” leaves out which operation, device, software path, and tensor are involved.
+
+Transformer Engine 2.16 documents NVFP4 training on compute capabilities SM100 and SM103, and inference on SM100 or later. It exposes the recipe to PyTorch and JAX through `NVFP4BlockScaling`, while also documenting layout and distributed-training constraints ([Transformer Engine documentation](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/features/low_precision_training/nvfp4/nvfp4.html)). These are versioned software conditions, not permanent properties of every Blackwell deployment.
+
+Inference has at least two separate quantization targets:
+
+1. **Weights and activations** are operands used by model computations.
+2. The **KV cache** stores attention keys and values from earlier tokens so autoregressive decoding does not recompute them.
+
+TensorRT-LLM's quantization matrix, inspected in the source package after its 2026-07-14 update, listed NVFP4 weights and activations on Blackwell SM100/103 and SM120. Its NVFP4 KV-cache support was narrower, limited to SM100/103, and the documented KV-cache combination required FP8 weights and activations ([TensorRT-LLM quantization guide](https://nvidia.github.io/TensorRT-LLM/latest/features/quantization.html)). Because this support changes with releases, the live matrix should be checked for the exact TensorRT-LLM version before deployment.
+
+Training GEMMs, weight-and-activation inference, and KV-cache compression are therefore three different decisions. Each needs an exact compute capability, framework version, model and layout, calibration or training path, and quality test.
+
+## Where speed and accuracy claims can fail
+
+Native Tensor Core execution creates a credible path to higher matrix throughput and lower operand bandwidth. End-to-end performance improves only if supported matrix multiplications dominate the workload.
+
+Quantization and scale handling consume work. Attention, communication, unsupported operators, memory bandwidth, small tensor shapes, and irregular layouts may dominate instead. A faster GEMM can simply move the bottleneck elsewhere. Peak hardware throughput is not a substitute for measuring prefill latency, decode latency, generation throughput, or training step time at the intended shapes and batch sizes.
+
+Accuracy needs a separate boundary. Finer local scaling can reduce the numerical error introduced while representing a tensor. Model quality also depends on where quantization is applied, how calibration is performed, whether training adapts to it, which computations stay at higher precision, and how errors propagate through the network. Lower error in a toy tensor does not prove equal language-model accuracy, much less equal behavior on rare or sensitive cases.
+
+The strongest large-scale result cited above was produced by NVIDIA for a particular pretraining experiment. Independent behavior on a target model, task distribution, context length, and deployment stack remains unknown until it is measured.
+
+## A decision test for an NVFP4 claim
+
+When a benchmark or deployment proposal says “NVFP4,” I would unpack it in this order:
+
+1. **Name the quantized object.** Is it weights, activations, training GEMM operands, or the KV cache?
+2. **Count the representation.** Include local and global scales, padding, duplicate layouts, and any higher-precision components instead of counting only E2M1 payload bits.
+3. **Verify the supported path.** Record the compute capability, software versions, model family, tensor layout, and allowed precision combination.
+4. **Describe how the artifact was made.** Distinguish a supported pre-quantized checkpoint, calibrated post-training quantization, and training with the full mixed-precision recipe.
+5. **Validate quality on the intended workload.** Compare with BF16 or FP8 on held-out tasks, long contexts, outlier-heavy inputs, and rare behaviors that matter.
+6. **Measure the system boundary.** Report checkpoint size, peak memory, KV-cache size where relevant, end-to-end latency or step time, throughput, and quality under the same conditions.
+
+If those questions are unanswered, “4-bit” tells us the width of the element payload and little more.
+
+NVFP4's useful idea is not merely squeezing a floating-point value into four bits. It is giving the same tiny E2M1 codebook different local units, then putting those units into a tensor-wide range. That hierarchy can represent tensors more closely than a coarser power-of-two scheme, and Blackwell hardware can execute supported operations natively. The remaining memory, accuracy, and speed claims belong to the whole mixed-precision system and the workload running through it, not to the four payload bits alone.

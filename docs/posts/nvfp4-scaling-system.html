@@ -1,23 +1,177 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<rss  xmlns:atom="http://www.w3.org/2005/Atom" 
-      xmlns:media="http://search.yahoo.com/mrss/" 
-      xmlns:content="http://purl.org/rss/1.0/modules/content/" 
-      xmlns:dc="http://purl.org/dc/elements/1.1/" 
-      version="2.0">
-<channel>
-<title>Vaibhav Nakrani</title>
-<link>https://nakranivaibhav.github.io/</link>
-<atom:link href="https://nakranivaibhav.github.io/index.xml" rel="self" type="application/rss+xml"/>
-<description>ML and Agentic AI, explained without the hand-waving. Notes on diffusion, agents, computer vision, and whatever I&#39;m currently figuring out.</description>
-<generator>quarto-1.8.25</generator>
-<lastBuildDate>Fri, 17 Jul 2026 18:30:00 GMT</lastBuildDate>
-<item>
-  <title>NVFP4 Is a Scaling System, Not Just a 4-Bit Number</title>
-  <dc:creator>Vaibhav Nakrani</dc:creator>
-  <link>https://nakranivaibhav.github.io/posts/nvfp4-scaling-system.html</link>
-  <description><![CDATA[ 
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.25">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Vaibhav Nakrani">
+<meta name="dcterms.date" content="2026-07-18">
+
+<title>NVFP4 Is a Scaling System, Not Just a 4-Bit Number – Vaibhav Nakrani</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
 
 
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-7b89279ff1a6dce999919e0e67d4d9ec.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-a8976c3e89df70b272bdfba3d2fda974.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<!-- GoatCounter analytics (privacy-friendly, cookieless) -->
+<script data-goatcounter="https://nakranivaibhav.goatcounter.com/count" async="" src="//gc.zgo.at/count.js"></script>
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../index.html" class="navbar-brand navbar-brand-logo">
+    </a>
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Vaibhav Nakrani</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/nakranivaibhav"> <i class="bi bi-github" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="../index.xml"> <i class="bi bi-rss" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#four-bits-do-not-provide-many-choices" id="toc-four-bits-do-not-provide-many-choices" class="nav-link active" data-scroll-target="#four-bits-do-not-provide-many-choices">Four bits do not provide many choices</a></li>
+  <li><a href="#the-smallest-example-the-same-payload-two-real-values" id="toc-the-smallest-example-the-same-payload-two-real-values" class="nav-link" data-scroll-target="#the-smallest-example-the-same-payload-two-real-values">The smallest example: the same payload, two real values</a></li>
+  <li><a href="#bit-is-a-payload-count-not-a-memory-measurement" id="toc-bit-is-a-payload-count-not-a-memory-measurement" class="nav-link" data-scroll-target="#bit-is-a-payload-count-not-a-memory-measurement">“4-bit” is a payload count, not a memory measurement</a></li>
+  <li><a href="#generic-fp4-mxfp4-and-nvfp4" id="toc-generic-fp4-mxfp4-and-nvfp4" class="nav-link" data-scroll-target="#generic-fp4-mxfp4-and-nvfp4">Generic FP4, MXFP4, and NVFP4</a></li>
+  <li><a href="#a-format-is-not-a-training-recipe" id="toc-a-format-is-not-a-training-recipe" class="nav-link" data-scroll-target="#a-format-is-not-a-training-recipe">A format is not a training recipe</a></li>
+  <li><a href="#hardware-support-still-needs-a-full-sentence" id="toc-hardware-support-still-needs-a-full-sentence" class="nav-link" data-scroll-target="#hardware-support-still-needs-a-full-sentence">Hardware support still needs a full sentence</a></li>
+  <li><a href="#where-speed-and-accuracy-claims-can-fail" id="toc-where-speed-and-accuracy-claims-can-fail" class="nav-link" data-scroll-target="#where-speed-and-accuracy-claims-can-fail">Where speed and accuracy claims can fail</a></li>
+  <li><a href="#a-decision-test-for-an-nvfp4-claim" id="toc-a-decision-test-for-an-nvfp4-claim" class="nav-link" data-scroll-target="#a-decision-test-for-an-nvfp4-claim">A decision test for an NVFP4 claim</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">NVFP4 Is a Scaling System, Not Just a 4-Bit Number</h1>
+<p class="subtitle lead">What the payload, block scale, and tensor scale each do, and when a 4-bit claim holds up</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">machine-learning</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Vaibhav Nakrani </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">July 18, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
 
 
 <style>
@@ -344,697 +498,410 @@ Block A: s_block = 1.0       Block B: s_block = 1.5
 
 </section>
 
- ]]></description>
-  <category>machine-learning</category>
-  <guid>https://nakranivaibhav.github.io/posts/nvfp4-scaling-system.html</guid>
-  <pubDate>Fri, 17 Jul 2026 18:30:00 GMT</pubDate>
-</item>
-<item>
-  <title>A Visual Guide to Causal, Bidirectional, and Hybrid Inference in Video Generation</title>
-  <dc:creator>Vaibhav Nakrani</dc:creator>
-  <link>https://nakranivaibhav.github.io/posts/causal-bidirectional-hybrid-video-inference.html</link>
-  <description><![CDATA[ 
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp("https:\/\/nakranivaibhav\.github\.io");
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
 
 
 
 
-<style>
-.schedule { display:grid; grid-template-columns:6.5rem repeat(4,minmax(4.7rem,1fr)); gap:.42rem; margin:1.2rem 0 .65rem; }
-.schedule > div { min-height:3.2rem; padding:.55rem .35rem; border:1px solid #cbd5e1; border-radius:.45rem; display:flex; align-items:center; justify-content:center; text-align:center; font-size:.9rem; }
-.schedule .axis { border:0; justify-content:flex-end; color:#475569; font-weight:600; }
-.schedule .head { min-height:auto; border:0; font-weight:700; color:#334155; }
-.unknown { background:#f1f5f9; color:#64748b; }
-.rough { background:#dbeafe; border-color:#60a5fa !important; color:#1e3a8a; }
-.mid { background:#bfdbfe; border-color:#3b82f6 !important; color:#1e3a8a; }
-.ready { background:#2563eb; border-color:#1d4ed8 !important; color:white; }
-.current { outline:3px solid #f59e0b; outline-offset:1px; }
-.legend { display:flex; flex-wrap:wrap; gap:1rem; margin:.4rem 0 1.1rem; color:#475569; font-size:.9rem; }
-.swatch { display:inline-block; width:.8rem; height:.8rem; margin-right:.3rem; border-radius:.18rem; vertical-align:-.05rem; }
-.checkpoint { border-left:4px solid #f59e0b; background:#fffbeb; padding:.8rem 1rem; margin:1.2rem 0; }
-</style>
-<p>“Causal” and “bidirectional” sound like labels attached permanently to a video model. One model moves left to right; another sees the whole clip. Pick an architecture, inherit its behavior.</p>
-<p>That picture is useful, but incomplete. A generator also needs a policy for deciding <strong>which parts of a noisy video may exchange information, and when</strong>. Once we look at that policy, causal and bidirectional generation become endpoints of a larger scheduling problem.</p>
-<p>I want to build that idea with four chunks of an imaginary video. No benchmark is hiding in the diagrams. They show information availability, not speed or quality measurements.</p>
-<section id="start-with-what-each-position-is-allowed-to-know" class="level2">
-<h2 class="anchored" data-anchor-id="start-with-what-each-position-is-allowed-to-know">Start with what each position is allowed to know</h2>
-<p>Suppose we split a video into four consecutive chunks: A, B, C, and D. A <strong>chunk</strong> is simply a group of neighboring video positions. It might contain one frame, several frames, or latent video tokens rather than pixels.</p>
-<p>In causal generation, a position may use an available prefix: the current chunk and earlier chunks, but not later chunks that have not been generated. When producing C, information from A and B can flow forward; D cannot flow backward.</p>
-<p>In bidirectional generation, positions across the clip may condition on one another while the clip is being refined. A rough state in A can influence D, and D can influence A. “Bidirectional” describes information flow, not playback direction. The finished video still plays from beginning to end.</p>
-<p>The tempting model is therefore:</p>
-<ul>
-<li>causal means <code>A → B → C → D</code>;</li>
-<li>bidirectional means <code>{A, B, C, D}</code> are refined together.</li>
-</ul>
-<p>Nothing is wrong with those endpoints. The mistake is assuming there can be no useful schedule between them.</p>
-</section>
-<section id="there-are-two-kinds-of-time-on-the-page" class="level2">
-<h2 class="anchored" data-anchor-id="there-are-two-kinds-of-time-on-the-page">There are two kinds of time on the page</h2>
-<p>Diffusion adds a second clock. <strong>Video time</strong> tells us whether a chunk appears early or late in the clip. <strong>Denoising time</strong> tells us how far a noisy representation has been refined toward a clean one.</p>
-<p>The grid below keeps these clocks separate. Columns run through the video. Rows move from a rough, noisy state toward a ready state. A row is not another moment in the story; it is another stage in the computation.</p>
-<div class="schedule">
-<div>
-
-</div>
-<div class="head">
-A<br>earliest
-</div>
-<div class="head">
-B
-</div>
-<div class="head">
-C
-</div>
-<div class="head">
-D<br>latest
-</div>
-<div class="axis">
-rough state
-</div>
-<div class="rough">
-A · rough
-</div>
-<div class="rough">
-B · rough
-</div>
-<div class="rough">
-C · rough
-</div>
-<div class="rough">
-D · rough
-</div>
-<div class="axis">
-more refined
-</div>
-<div class="mid">
-A · refining
-</div>
-<div class="mid">
-B · refining
-</div>
-<div class="mid">
-C · refining
-</div>
-<div class="mid">
-D · refining
-</div>
-<div class="axis">
-ready state
-</div>
-<div class="ready">
-A · ready
-</div>
-<div class="ready">
-B · ready
-</div>
-<div class="ready">
-C · ready
-</div>
-<div class="ready">
-D · ready
-</div>
-</div>
-<div class="legend">
-<p><span><span class="swatch rough"></span>rough</span> <span><span class="swatch mid"></span>partly refined</span> <span><span class="swatch ready"></span>ready</span></p>
-</div>
-<p>This separation matters because a schedule can change along either axis. It can group more or fewer neighboring video positions, and it can change those groups as denoising progresses.</p>
-<div class="checkpoint">
-<p><strong>Pause and predict:</strong> must D be completely unknown until A is ready? A strictly causal schedule says yes. A hybrid schedule does not have to.</p>
-</div>
-</section>
-<section id="the-rigid-endpoints" class="level2">
-<h2 class="anchored" data-anchor-id="the-rigid-endpoints">The rigid endpoints</h2>
-<p>The tabs show two idealized reveal orders. Step through them from left to right. “Available” means the scheduler allows that region to participate; it does not mean the model has rendered a viewable frame at that instant.</p>
-<div class="tabset-margin-container"></div><div class="panel-tabset">
-<ul class="nav nav-tabs"><li class="nav-item"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" aria-controls="tabset-1-1" aria-selected="true" href="">Bidirectional</a></li><li class="nav-item"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" aria-controls="tabset-1-2" aria-selected="false" href="">Causal · after A</a></li><li class="nav-item"><a class="nav-link" id="tabset-1-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-3" aria-controls="tabset-1-3" aria-selected="false" href="">Causal · after B</a></li></ul>
-<div class="tab-content">
-<div id="tabset-1-1" class="tab-pane active" aria-labelledby="tabset-1-1-tab">
-<div class="schedule">
-<div>
-
-</div>
-<div class="head">
-A
-</div>
-<div class="head">
-B
-</div>
-<div class="head">
-C
-</div>
-<div class="head">
-D
-</div>
-<div class="axis">
-1 · rough
-</div>
-<div class="rough current">
-available
-</div>
-<div class="rough current">
-available
-</div>
-<div class="rough current">
-available
-</div>
-<div class="rough current">
-available
-</div>
-<div class="axis">
-2 · refine
-</div>
-<div class="mid">
-together
-</div>
-<div class="mid">
-together
-</div>
-<div class="mid">
-together
-</div>
-<div class="mid">
-together
-</div>
-<div class="axis">
-3 · ready
-</div>
-<div class="ready">
-ready
-</div>
-<div class="ready">
-ready
-</div>
-<div class="ready">
-ready
-</div>
-<div class="ready">
-ready
-</div>
-</div>
-<p>All four chunks enter the computation together and can help establish a global plan. The price of this simple picture is that the full working set must be handled together; it also does not naturally emit a completed prefix while later chunks remain absent.</p>
-</div>
-<div id="tabset-1-2" class="tab-pane" aria-labelledby="tabset-1-2-tab">
-<div class="schedule">
-<div>
-
-</div>
-<div class="head">
-A
-</div>
-<div class="head">
-B
-</div>
-<div class="head">
-C
-</div>
-<div class="head">
-D
-</div>
-<div class="axis">
-rough
-</div>
-<div class="rough">
-available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="axis">
-refine
-</div>
-<div class="mid">
-refining
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="axis">
-ready
-</div>
-<div class="ready current">
-A ready
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-</div>
-<p>A is completed without future chunks. This makes a finished prefix possible, but A cannot use evidence that will appear only in C or D.</p>
-</div>
-<div id="tabset-1-3" class="tab-pane" aria-labelledby="tabset-1-3-tab">
-<div class="schedule">
-<div>
-
-</div>
-<div class="head">
-A
-</div>
-<div class="head">
-B
-</div>
-<div class="head">
-C
-</div>
-<div class="head">
-D
-</div>
-<div class="axis">
-rough
-</div>
-<div class="ready">
-past context
-</div>
-<div class="rough">
-available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="axis">
-refine
-</div>
-<div class="ready">
-past context
-</div>
-<div class="mid">
-refining
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="axis">
-ready
-</div>
-<div class="ready">
-A ready
-</div>
-<div class="ready current">
-B ready
-</div>
-<div class="unknown">
-not available
-</div>
-<div class="unknown">
-not available
-</div>
-</div>
-<p>B may use A as context. C and D still cannot help. Repeating the pattern eventually completes the clip from left to right.</p>
-</div>
-</div>
-</div>
-<p>These diagrams deliberately exaggerate the contrast. Real systems differ in caching, attention masks, chunk size, and what counts as “ready.” The grid gives us a vocabulary for asking about those details instead of treating the labels as complete specifications.</p>
-</section>
-<section id="a-schedule-can-live-between-the-endpoints" class="level2">
-<h2 class="anchored" data-anchor-id="a-schedule-can-live-between-the-endpoints">A schedule can live between the endpoints</h2>
-<p><a href="https://arxiv.org/abs/2607.03509">Flex-Forcing</a> makes chunking flexible over both the temporal dimension and denoising steps. The same video diffusion model can operate under bidirectional, autoregressive, and hybrid generation regimes. Its <a href="https://research.nvidia.com/labs/genair/flex-forcing/">project page</a> describes larger chunks as closer to global bidirectional planning and smaller chunks as closer to autoregressive streaming.</p>
-<p>Here is a conceptual four-chunk hybrid. It is an explanatory sketch, not the paper’s exact tensor layout or a reproduced experimental configuration.</p>
-<div class="tabset-margin-container"></div><div class="panel-tabset">
-<ul class="nav nav-tabs"><li class="nav-item"><a class="nav-link active" id="tabset-2-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-1" aria-controls="tabset-2-1" aria-selected="true" href="">1 · rough plan</a></li><li class="nav-item"><a class="nav-link" id="tabset-2-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-2" aria-controls="tabset-2-2" aria-selected="false" href="">2 · finish A</a></li><li class="nav-item"><a class="nav-link" id="tabset-2-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-3" aria-controls="tabset-2-3" aria-selected="false" href="">3 · finish B</a></li><li class="nav-item"><a class="nav-link" id="tabset-2-4-tab" data-bs-toggle="tab" data-bs-target="#tabset-2-4" aria-controls="tabset-2-4" aria-selected="false" href="">4 · complete</a></li></ul>
-<div class="tab-content">
-<div id="tabset-2-1" class="tab-pane active" aria-labelledby="tabset-2-1-tab">
-<div class="schedule">
-<div>
-
-</div>
-<div class="head">
-A
-</div>
-<div class="head">
-B
-</div>
-<div class="head">
-C
-</div>
-<div class="head">
-D
-</div>
-<div class="axis">
-rough
-</div>
-<div class="rough current">
-global hint
-</div>
-<div class="rough current">
-global hint
-</div>
-<div class="rough current">
-global hint
-</div>
-<div class="rough current">
-global hint
-</div>
-<div class="axis">
-refine
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="axis">
-ready
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-</div>
-<p>All chunks receive a rough global context. Later positions are not finished, but they are not entirely absent either. This is the bidirectional part of the mental model.</p>
-</div>
-<div id="tabset-2-2" class="tab-pane" aria-labelledby="tabset-2-2-tab">
-<div class="schedule">
-<div>
-
-</div>
-<div class="head">
-A
-</div>
-<div class="head">
-B
-</div>
-<div class="head">
-C
-</div>
-<div class="head">
-D
-</div>
-<div class="axis">
-rough
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="axis">
-refine
-</div>
-<div class="mid">
-refined
-</div>
-<div class="rough">
-planned
-</div>
-<div class="rough">
-planned
-</div>
-<div class="rough">
-planned
-</div>
-<div class="axis">
-ready
-</div>
-<div class="ready current">
-A ready
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-</div>
-<p>A can now be completed while the rough plan for B–D remains available. Fine synthesis moves forward even though coarse planning did not.</p>
-</div>
-<div id="tabset-2-3" class="tab-pane" aria-labelledby="tabset-2-3-tab">
-<div class="schedule">
-<div>
-
-</div>
-<div class="head">
-A
-</div>
-<div class="head">
-B
-</div>
-<div class="head">
-C
-</div>
-<div class="head">
-D
-</div>
-<div class="axis">
-rough
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="axis">
-refine
-</div>
-<div class="ready">
-past context
-</div>
-<div class="mid">
-refined
-</div>
-<div class="rough">
-planned
-</div>
-<div class="rough">
-planned
-</div>
-<div class="axis">
-ready
-</div>
-<div class="ready">
-A ready
-</div>
-<div class="ready current">
-B ready
-</div>
-<div class="unknown">
-pending
-</div>
-<div class="unknown">
-pending
-</div>
-</div>
-<p>B uses the completed prefix and the wider plan. Call this “autoregressive synthesis within the plan”: left-to-right completion—not that every internal operation must be strictly causal.</p>
-</div>
-<div id="tabset-2-4" class="tab-pane" aria-labelledby="tabset-2-4-tab">
-<div class="schedule">
-<div>
-
-</div>
-<div class="head">
-A
-</div>
-<div class="head">
-B
-</div>
-<div class="head">
-C
-</div>
-<div class="head">
-D
-</div>
-<div class="axis">
-rough
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="rough">
-global hint
-</div>
-<div class="axis">
-refine
-</div>
-<div class="ready">
-refined
-</div>
-<div class="ready">
-refined
-</div>
-<div class="ready">
-refined
-</div>
-<div class="ready">
-refined
-</div>
-<div class="axis">
-ready
-</div>
-<div class="ready">
-A ready
-</div>
-<div class="ready">
-B ready
-</div>
-<div class="ready">
-C ready
-</div>
-<div class="ready current">
-D ready
-</div>
-</div>
-<p>The result is still an ordinary video. What changed was the reveal order of intermediate information.</p>
-</div>
-</div>
-</div>
-<p>The paper’s claim is broader than this toy schedule. Flex-Forcing defines flexible chunking jointly over video positions and denoising steps, supports chunk sizes chosen for different device budgets, and permits any-order, any-timestep autoregressive generation without a strict causal constraint. The authors also report better video quality, long-video stability, and faster inference than rigid-schedule baselines across their experiments (<a href="https://arxiv.org/abs/2607.03509">paper abstract</a>; <a href="https://research.nvidia.com/labs/genair/flex-forcing/">project results</a>). Those are results for the evaluated configurations, not a guarantee that every hybrid schedule improves every metric.</p>
-<p>The project page offers one concrete example of why the schedule itself matters. For a five-second video represented by 21 latent frames, it reports that a coarse-to-fine chunk configuration <code>[9, 6, 6]</code> lies on its measured quality–speed frontier and outperforms uniform <code>[7, 7, 7]</code> and its Self-Forcing baseline on the displayed measures. The numbers describe chunk configurations in that experiment; they are not denoising-step counts or a universal recipe.</p>
-</section>
-<section id="the-policy-changes-the-questions-we-should-ask" class="level2">
-<h2 class="anchored" data-anchor-id="the-policy-changes-the-questions-we-should-ask">The policy changes the questions we should ask</h2>
-<p>Once generation becomes a schedule, “Is this model causal?” is too coarse. More useful questions are:</p>
-<ul>
-<li>Which video positions are grouped into a chunk?</li>
-<li>Can rough future positions influence the current chunk?</li>
-<li>Does chunk size change along the denoising trajectory?</li>
-<li>When is the first usable prefix available?</li>
-<li>Which intermediate states must remain in memory?</li>
-<li>Can a later chunk be edited without rebuilding the whole sequence?</li>
-</ul>
-<p>Different answers can trade global planning, streaming behavior, memory use, and fine-grained control. The direction of those trade-offs is plausible from the information-flow pattern, but their size requires matched experiments on the same model, outputs, hardware, and quality target. A grid cannot produce a latency number.</p>
-<p>Flex-Forcing also demonstrates why “inference policy” is a useful phrase rather than just a metaphor. Its project page describes editing at low-level refinement steps while keeping high-level planning fixed, and allowing a chunk to attend to both past and future tokens. The schedule determines which information can move and which parts can change.</p>
-</section>
-<section id="lingbot-exposes-a-different-kind-of-inference-policy" class="level2">
-<h2 class="anchored" data-anchor-id="lingbot-exposes-a-different-kind-of-inference-policy">LingBot exposes a different kind of inference policy</h2>
-<p>LingBot-Video is useful here as a contrast, not as another Flex-Forcing implementation. Its public <a href="https://github.com/robbyant/lingbot-video">repository</a> and <a href="https://huggingface.co/robbyant/lingbot-video-moe-30b-a3b">model card</a> expose a user-facing workflow with prompt rewriting, base video generation, an optional refiner, and multiple serving paths. The documented MoE text-to-video command uses a 40-step base stage followed by an 8-step refiner stage.</p>
-<p>That sequence is also an inference policy: it decides how a prompt is prepared and how generation is divided across two denoising stages. But it operates along different axes from Flex-Forcing’s joint temporal-and-denoising chunk schedule. <code>40 + 8</code> does not tell us whether information flows causally or bidirectionally across video chunks, and the public LingBot materials cited here do not claim Flex-Forcing’s mechanism.</p>
-<p>The comparison therefore stops at a shared lesson: a model’s weights and architecture do not completely describe the behavior a user receives. Scheduling, refinement, conditioning, and serving choices are part of the generation path. The two systems expose different choices, so their counters cannot be placed on one speed scale without a matched evaluation.</p>
-</section>
-<section id="a-compact-way-to-explain-it-back" class="level2">
-<h2 class="anchored" data-anchor-id="a-compact-way-to-explain-it-back">A compact way to explain it back</h2>
-<p>Try drawing a grid with video position on the horizontal axis and denoising progress on the vertical axis.</p>
-<p>A rigid bidirectional schedule refines a large region together. A rigid causal schedule completes regions from left to right, leaving future regions unavailable. A flexible schedule can make rough information available across a wide region, then complete finer regions in an autoregressive order. Flex-Forcing turns that two-axis chunking pattern into a training and inference framework for one model.</p>
-<p>This mental model establishes <strong>how</strong> causal and bidirectional behavior can become scheduling choices. It does not establish the best schedule for a deployment, the memory required by an implementation, or a speed comparison with LingBot. Those answers need released implementations or matched measurements.</p>
-<p>The next time a video model is called “causal” or “bidirectional,” the useful follow-up is not “which one is better?” It is: <strong>what information becomes available at each point in video time and denoising time?</strong></p>
-
-
-</section>
-
- ]]></description>
-  <category>machine-learning</category>
-  <guid>https://nakranivaibhav.github.io/posts/causal-bidirectional-hybrid-video-inference.html</guid>
-  <pubDate>Fri, 10 Jul 2026 18:30:00 GMT</pubDate>
-</item>
-<item>
-  <title>Diffusion Without the Hand-Waving</title>
-  <dc:creator>Vaibhav Nakrani</dc:creator>
-  <link>https://nakranivaibhav.github.io/posts/diffusion-without-the-hand-waving.html</link>
-  <description><![CDATA[ 
-
-
-
-
-<p>The cleanest way to understand diffusion is to build it up one step at a time. Here’s the version that finally made it click.</p>
-<p>Start with the goal. You want to turn random noise into a realistic image.</p>
-<p>Now imagine you had a magic function. You show it any image and it tells you how realistic that image is. A clear photo scores high. Pure static scores low.</p>
-<p>The useful part isn’t the score itself. It’s the gradient of that score with respect to the pixels. That gradient tells you exactly which pixels to change, and in which direction, to make the image look a little more real. Follow it over and over and noise slowly turns into a real image.</p>
-<p>The problem is nobody can hand you that function.</p>
-<p>The trick that makes the whole field work. You can learn that gradient without ever building the function. Take a real image. Add a known amount of noise to it. Train a network to predict the noise you added. That predicted noise is, give or take a scaling factor, the gradient you wanted. Subtract a bit of it and the image moves toward “more realistic.”</p>
-<p>The network does not learn to clean up images. It learns which direction points toward real data. Denoising is just what that looks like from the outside. The proper name for that direction is the score, but you can keep thinking of it as a gradient.</p>
-<p>Training is boring on purpose. Take images, add a random amount of noise to each, ask the model to predict the noise, penalize it with mean squared error. Repeat millions of times. You also feed in how much noise was added, so the model knows how messy the picture currently is. ( the magical timestep )</p>
-<p>Generation just runs it backward. Start from pure noise. Ask the model which direction is more realistic. Take a small step that way. Ask again. Step again. Repeat until an image appears. The steps are small because the model’s guess is only approximate, especially early on when the input looks nothing like real data.</p>
-<p>That stepping strategy is the sampler. DDPM, DDIM, Euler, DPM-Solver. They teach the model nothing new. They’re just different ways of walking downhill. The right mental model is optimizers. SGD versus Adam. Same loss surface, different path, different speed. A good sampler gets you there in 20 steps instead of 1000.</p>
-<p>So far this was on raw pixels. In practice you don’t work on pixels, and you also want to control what gets generated. Two extra pieces handle that, and both are trained ahead of time and then frozen.</p>
-<p>The VAE is just a compressor. It’s trained separately, before any diffusion, with one job: squash an image into a small latent and decode it back faithfully. It never sees noise and knows nothing about diffusion. Once trained, you freeze it. All the diffusion now happens on these small latents instead of big images, which is what makes it cheap.</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://nakranivaibhav.github.io/assets/images/diffusion-without-the-hand-waving/im4.png" class="img-fluid figure-img"></p>
-<figcaption>vae</figcaption>
-</figure>
-</div>
-<p>The text encoder is the text half of a CLIP model, also trained earlier and frozen. Its job is to turn a caption into an embedding. That embedding is how the prompt steers generation. It enters the U-Net through cross-attention, so the gradient now points toward realistic and matches this caption.</p>
-<p>Here’s the actual training flow, start to finish: - Take an (image, caption) pair. - Caption goes through the frozen text encoder. Out comes a text embedding. - Image goes through the frozen VAE encoder. Out comes a clean latent. - Pick a random timestep. Blend the clean latent with random noise according to that timestep. Low timestep is mostly clean latent, high timestep is mostly noise. This is a one-shot formula, you do not iterate here. - That noisy latent, the timestep, and the text embedding go into the U-Net. - The U-Net predicts the noise that was added. - Loss is MSE between the real noise and the predicted noise. Only the U-Net updates. VAE and text encoder stay frozen.</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://nakranivaibhav.github.io/assets/images/diffusion-without-the-hand-waving/im5.png" class="img-fluid figure-img"></p>
-<figcaption>diffusion training process</figcaption>
-</figure>
-</div>
-<p>Step 4 is the thing people get stuck on. You do not add noise to the image. You encode the image to a latent first, then add noise to the latent with a formula. The clean latent is the target, the noise is what the model predicts.</p>
-<p>Generation is the same pipeline in reverse:</p>
-<ul>
-<li>Caption through the text encoder, get the embedding.</li>
-<li>Start from a pure noise latent.</li>
-<li>Each step, the U-Net predicts the noise from the current latent, the timestep, and the text embedding. The sampler uses that to step to a slightly cleaner latent. Repeat.</li>
-<li>You end with a clean latent. Run it through the VAE decoder to get the final image.</li>
-</ul>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://nakranivaibhav.github.io/assets/images/diffusion-without-the-hand-waving/im2.png" class="img-fluid figure-img"></p>
-<figcaption>forward pass diffusion</figcaption>
-</figure>
-</div>
-<p>And the network itself is swappable. Replace the U-Net with something else and you get modern DiT backbones. Same training flow, same everything else.</p>
-<p>So the whole thing is still three pieces: A direction that says which way is more realistic. A network that learns it by predicting noise. A sampler that walks that direction from noise to image.</p>
-<p>The VAE and text encoder are just the frozen helpers that make it cheap and controllable. Everything else is detail.</p>
-<p>Optional: both the vae and the text encoder can be fine-tuned when tuning these models. text encoder tuning is more beneficial generally than vae from my expreiments.</p>
-<p><em>Inspired by <a href="https://course.fast.ai/Lessons/lesson9.html">fast.ai Practical Deep Learning, Lesson 9</a>. If you want the long version, the lesson has the full lecture video walking through all of this end to end. Grab a coffee, it’s worth the couple of hours.</em></p>
-
-
-
- ]]></description>
-  <category>machine-learning</category>
-  <guid>https://nakranivaibhav.github.io/posts/diffusion-without-the-hand-waving.html</guid>
-  <pubDate>Sat, 27 Jun 2026 18:30:00 GMT</pubDate>
-  <media:content url="https://nakranivaibhav.github.io/assets/images/diffusion-without-the-hand-waving/im1.png" medium="image" type="image/png" height="108" width="144"/>
-</item>
-</channel>
-</rss>
+</body></html>

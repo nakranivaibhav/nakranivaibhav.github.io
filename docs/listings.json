@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/nvfp4-scaling-system.html",
       "/posts/causal-bidirectional-hybrid-video-inference.html",
       "/posts/diffusion-without-the-hand-waving.html"
     ]
